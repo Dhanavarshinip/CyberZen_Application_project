@@ -1,0 +1,43 @@
+{
+  "datasets_inspected": [
+    "BETH Dataset (labelled_training_data.csv: 763,144 records)",
+    "BETH Dataset (labelled_testing_data.csv: 188,967 records, 158,432 evil)",
+    "BETH Host Sensor Logs (labelled_2021may-ip-*.csv: multi-sensor telemetry)",
+    "BETH DNS Sensor Logs (labelled_2021may-*-dns.csv: 259 unique DNS queries)",
+    "CIC-IDS-2017 (MachineLearningCSV.zip: PCAP flow metrics)",
+    "EMBER 2018 (ember_dataset_2018_2.tar.bz2: static PE binary features)"
+  ],
+  "before_improvement_baseline": {
+    "model": "Isolation Forest (trained on 150 synthetic samples only)",
+    "synthetic_scenarios_f1": 0.3636,
+    "synthetic_scenarios_recall": 0.2222,
+    "synthetic_scenarios_fnr": 0.7778,
+    "real_attack_detection_recall": 0.0,
+    "real_attack_detection_fnr": 1.0,
+    "detection_latency_us": 4773.45
+  },
+  "after_improvement_results": {
+    "isolation_forest_real_baseline": {
+      "training_samples": 20300,
+      "precision": 0.9992,
+      "fpr": 0.0002,
+      "detection_latency_us": 1.82
+    },
+    "supervised_threat_classifier_rf": {
+      "accuracy": 0.9985,
+      "precision": 0.9397,
+      "recall": 0.997,
+      "f1_score": 0.9675,
+      "fpr": 0.0014,
+      "fnr": 0.003,
+      "confusion_matrix": {
+        "TN": 14651,
+        "FP": 21,
+        "FN": 1,
+        "TP": 327
+      },
+      "detection_latency_us": 6.69,
+      "training_time_seconds": 0.38
+    }
+  }
+}

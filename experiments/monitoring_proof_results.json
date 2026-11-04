@@ -1,0 +1,34 @@
+{
+  "verification_timestamp": "2026-10-27T05:19:31.953717+00:00",
+  "total_verification_latency_ms": 1051.84,
+  "step_1_process_monitor": {
+    "active_processes_count": 280,
+    "inspected_pid": 15932,
+    "process_name": "python.exe",
+    "adware_detection_verified": true
+  },
+  "step_2_file_monitor": {
+    "safe_file_sha256": "91e7f3a28545...",
+    "double_extension_detected": true,
+    "eicar_detected": true
+  },
+  "step_3_network_monitor": {
+    "live_connections_count": 158,
+    "private_filtering_verified": true,
+    "suspicious_port_alerting_verified": true
+  },
+  "step_4_persistent_storage": {
+    "events_persisted": 2,
+    "date_isolation_verified": true,
+    "persistence_verified": true
+  },
+  "step_5_offline_sync": {
+    "offline_queued": 25,
+    "synced_count": 25,
+    "remaining_pending": 0,
+    "event_loss_rate_pct": 0.0,
+    "sync_latency_ms": 369.4,
+    "duplicates_rejected": 25
+  },
+  "verdict": "VERIFIED_REAL_SYSTEM"
+}

@@ -1,0 +1,147 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiClient } from '../services/apiClient';
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('cyberthreat_auth_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [deviceId, setDeviceId] = useState(() => {
+    return localStorage.getItem('cyberthreat_device_id') || 'DEV-HOST';
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState(null);
+
+  useEffect(() => {
+    // Only bind to local host monitor device_id if running locally on the same host
+    const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (isLocalHost) {
+      apiClient.getMonitoringStatus().then(res => {
+        if (res && res.device_id && res.device_id !== 'UNKNOWN') {
+          setDeviceId(res.device_id);
+          localStorage.setItem('cyberthreat_device_id', res.device_id);
+        }
+      }).catch(() => {});
+    } else {
+      let clientDevId = localStorage.getItem('cyberthreat_client_device_id');
+      if (!clientDevId) {
+        clientDevId = `DEV_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+        localStorage.setItem('cyberthreat_client_device_id', clientDevId);
+      }
+      setDeviceId(clientDevId);
+      localStorage.setItem('cyberthreat_device_id', clientDevId);
+    }
+
+    // Validate active session
+    const savedUser = localStorage.getItem('cyberthreat_auth_user');
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        apiClient.getCurrentUser(u.id).then(res => {
+          if (!res || !res.authenticated) {
+            setUser(null);
+            localStorage.removeItem('cyberthreat_auth_user');
+            apiClient.clearToken();
+          } else {
+            // Keep Chrome extension automatically paired with registered email across reloads
+            const activeDevId = localStorage.getItem('cyberthreat_device_id') || deviceId;
+            apiClient.pairExtension(u.email, activeDevId, u.id).catch(() => {});
+          }
+        }).catch(() => {});
+      } catch (e) {}
+    }
+  }, []);
+
+  const login = async (email, password) => {
+    setIsLoading(true);
+    setAuthError(null);
+    try {
+      const res = await apiClient.login(email, password, deviceId, navigator.userAgent || 'Windows Desktop');
+      if (res && res.user) {
+        setUser(res.user);
+        localStorage.setItem('cyberthreat_auth_user', JSON.stringify(res.user));
+        // Existing user sign-in: NEVER ask for onboarding permissions
+        localStorage.setItem('cyberthreat_onboarding_completed', 'true');
+        sessionStorage.removeItem('cyberthreat_just_registered');
+
+        // Automatically sync Chrome extension pairing with active session
+        try {
+          await apiClient.pairExtension(res.user.email, deviceId, res.user.id);
+        } catch (extErr) {
+          console.warn('[Extension Pairing Notice]:', extErr.message);
+        }
+
+        setIsLoading(false);
+        return res.user;
+      }
+      throw new Error('Invalid response from server');
+    } catch (err) {
+      setAuthError(err.message || 'Login failed. Please check credentials.');
+      setIsLoading(false);
+      throw err;
+    }
+  };
+
+  const signup = async (fullName, email, password, consentAccepted = true) => {
+    setIsLoading(true);
+    setAuthError(null);
+    try {
+      const res = await apiClient.signup(email, password, fullName, deviceId, navigator.userAgent || 'Windows Desktop', consentAccepted);
+      if (res && res.user) {
+        setUser(res.user);
+        localStorage.setItem('cyberthreat_auth_user', JSON.stringify(res.user));
+        // Only ask onboarding permissions when user registers
+        sessionStorage.setItem('cyberthreat_just_registered', 'true');
+        localStorage.removeItem('cyberthreat_onboarding_completed');
+
+        // Automatically pair and configure Chrome extension for registered user
+        try {
+          await apiClient.pairExtension(res.user.email, deviceId, res.user.id);
+        } catch (extErr) {
+          console.warn('[Extension Pairing Notice]:', extErr.message);
+        }
+
+        setIsLoading(false);
+        return res.user;
+      }
+      throw new Error('Invalid response from server');
+    } catch (err) {
+      setAuthError(err.message || 'Signup failed. Please try again.');
+      setIsLoading(false);
+      throw err;
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('cyberthreat_auth_user');
+    apiClient.clearToken();
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        authError,
+        setAuthError,
+        login,
+        signup,
+        logout
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

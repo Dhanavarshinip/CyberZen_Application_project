@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Managed PostgreSQL for production shared user, device, and sync records
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cyberthreat_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMeSecurePass2026!}
+      POSTGRES_DB: ${POSTGRES_DB:-cyberthreat_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Note: Do not expose port 5432 to host in production; accessible only within internal docker network
+    networks:
+      - internal_net
+
+  # FastAPI Backend API Server
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cyberthreat_admin}:${POSTGRES_PASSWORD:-ChangeMeSecurePass2026!}@db:5432/${POSTGRES_DB:-cyberthreat_production}
+      CYBERTHREAT_SECRET_KEY: ${CYBERTHREAT_SECRET_KEY:-prod_super_secret_token_key_change_me_2026}
+      ENVIRONMENT: production
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8000
+      CORS_ORIGINS: "https://cyberthreat.ai,https://app.cyberthreat.ai"
+    depends_on:
+      - db
+    networks:
+      - internal_net
+      - web_net
+
+  # React Frontend Static Web Server & Reverse Proxy
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - web_net
+
+volumes:
+  postgres_data:
+
+networks:
+  internal_net:
+    internal: true # Isolated from public internet
+  web_net:

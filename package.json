@@ -1,0 +1,72 @@
+{
+  "name": "cyberthreat-ai-system",
+  "private": true,
+  "version": "1.0.0",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "postbuild": "powershell -NoProfile -ExecutionPolicy Bypass -File create_desktop_shortcut.ps1",
+    "shortcut": "powershell -NoProfile -ExecutionPolicy Bypass -File create_desktop_shortcut.ps1",
+    "electron:dev": "cross-env NODE_ENV=development electron .",
+    "electron:pack": "vite build && electron-builder --dir",
+    "dist": "vite build && electron-builder",
+    "package:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build_windows_release.ps1",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "description": "Intelligent Real-Time Digital Threat Detection, Prevention and Incident Reconstruction",
+  "author": "CyberThreat AI Research Team",
+  "build": {
+    "appId": "com.cyberthreat.ai",
+    "productName": "CyberZen Operations Center",
+    "copyright": "Copyright © 2026 CyberThreat AI",
+    "asar": false,
+    "forceCodeSigning": false,
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "backend/**/*",
+      "models/**/*",
+      "chrome_extension/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "publisherName": "CyberThreat AI Research Lab",
+      "requestedExecutionLevel": "asInvoker",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "CyberZen",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    }
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.32.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "cross-env": "^10.1.0",
+    "electron": "^45.2.1",
+    "electron-builder": "^26.15.3",
+    "oxlint": "^1.75.0",
+    "vite": "^8.2.0"
+  }
+}

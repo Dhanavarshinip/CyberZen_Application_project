@@ -1,0 +1,1 @@
+"""Behavioral model module."""

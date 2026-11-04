@@ -1,0 +1,105 @@
+{
+  "benchmark_timestamp": "2026-11-04T09:38:24.105546+00:00",
+  "evaluation_summary": {
+    "mean_lead_time_advantage_minutes": 9.0,
+    "directional_escalation_accuracy_pct": 69.0,
+    "mean_mae_at_t15m": {
+      "proposed_kinematic_model": 32.75,
+      "baseline_1_static_reactive": 45.78,
+      "baseline_2_unconstrained_linear": 36.77,
+      "relative_error_reduction_pct": 28.5
+    }
+  },
+  "tempo_evaluations": [
+    {
+      "trajectory_points_count": 10,
+      "lead_time_advantage_minutes": 12.0,
+      "directional_escalation_accuracy_pct": {
+        "proposed_kinematic_model": 76.2,
+        "baseline_static_reactive": 0.0
+      },
+      "proposed_kinematic_model": {
+        "mae": {
+          "5": 8.06,
+          "15": 23.88,
+          "30": 41.74
+        },
+        "rmse": {
+          "5": 9.14,
+          "15": 28.7,
+          "30": 51.83
+        }
+      },
+      "baseline_1_static_reactive": {
+        "mae": {
+          "5": 16.67,
+          "15": 41.14,
+          "30": 50.43
+        },
+        "rmse": {
+          "5": 18.41,
+          "15": 44.79,
+          "30": 55.71
+        }
+      },
+      "baseline_2_unconstrained_linear": {
+        "mae": {
+          "5": 8.35,
+          "15": 24.54,
+          "30": 49.0
+        },
+        "rmse": {
+          "5": 10.3,
+          "15": 32.4,
+          "30": 58.41
+        }
+      },
+      "attack_tempo": "normal"
+    },
+    {
+      "trajectory_points_count": 10,
+      "lead_time_advantage_minutes": 6.0,
+      "directional_escalation_accuracy_pct": {
+        "proposed_kinematic_model": 61.9,
+        "baseline_static_reactive": 0.0
+      },
+      "proposed_kinematic_model": {
+        "mae": {
+          "5": 16.3,
+          "15": 41.62,
+          "30": 50.18
+        },
+        "rmse": {
+          "5": 18.16,
+          "15": 49.51,
+          "30": 59.87
+        }
+      },
+      "baseline_1_static_reactive": {
+        "mae": {
+          "5": 30.19,
+          "15": 50.43,
+          "30": 49.71
+        },
+        "rmse": {
+          "5": 33.51,
+          "15": 55.71,
+          "30": 54.49
+        }
+      },
+      "baseline_2_unconstrained_linear": {
+        "mae": {
+          "5": 16.83,
+          "15": 49.0,
+          "30": 63.71
+        },
+        "rmse": {
+          "5": 21.97,
+          "15": 58.41,
+          "30": 69.97
+        }
+      },
+      "attack_tempo": "fast"
+    }
+  ]
+}
