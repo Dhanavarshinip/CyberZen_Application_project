@@ -293,16 +293,40 @@ app.add_middleware(
 # Attach API routes
 app.include_router(create_api_router(services))
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
 
-@app.get("/")
-def root():
-    return {
-        "title": "CyberThreat AI System Research API",
-        "version": "1.0.0",
-        "docs_url": "/docs",
-        "health_url": "/api/health",
-        "architecture": "Behavioral Digital Twins + Temporal Knowledge Graphs + Threat Evolution Engine"
-    }
+# Mount production React frontend build if present
+DIST_DIR = Path(__file__).resolve().parent.parent / "dist"
+if DIST_DIR.exists() and (DIST_DIR / "index.html").exists():
+    assets_dir = DIST_DIR / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/", include_in_schema=False)
+    async def serve_index():
+        return FileResponse(str(DIST_DIR / "index.html"))
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        if full_path.startswith("api") or full_path.startswith("docs") or full_path == "openapi.json":
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Endpoint not found")
+        target_file = DIST_DIR / full_path
+        if target_file.is_file():
+            return FileResponse(str(target_file))
+        return FileResponse(str(DIST_DIR / "index.html"))
+else:
+    @app.get("/")
+    def root():
+        return {
+            "title": "CyberThreat AI System Research API",
+            "version": "1.0.0",
+            "docs_url": "/docs",
+            "health_url": "/api/health",
+            "architecture": "Behavioral Digital Twins + Temporal Knowledge Graphs + Threat Evolution Engine"
+        }
 
 
 if __name__ == "__main__":
