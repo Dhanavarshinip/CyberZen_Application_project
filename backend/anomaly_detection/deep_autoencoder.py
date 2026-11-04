@@ -14,36 +14,49 @@ unseen during baseline training.
 """
 
 import os
-import torch
-import torch.nn as nn
-import torch.optim as optim
 import numpy as np
 from typing import Dict, Any, List, Optional
 
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    nn = None
+    optim = None
+    TORCH_AVAILABLE = False
 
-class AutoencoderNet(nn.Module):
-    """Deep Autoencoder neural network with bottleneck representation."""
 
-    def __init__(self, input_dim: int = 10, latent_dim: int = 8):
-        super(AutoencoderNet, self).__init__()
-        # Encoder
-        self.encoder = nn.Sequential(
-            nn.Linear(input_dim, 16),
-            nn.LeakyReLU(0.2),
-            nn.Linear(16, latent_dim),
-            nn.LeakyReLU(0.2)
-        )
-        # Decoder
-        self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, 16),
-            nn.LeakyReLU(0.2),
-            nn.Linear(16, input_dim)
-        )
+if TORCH_AVAILABLE:
+    class AutoencoderNet(nn.Module):
+        """Deep Autoencoder neural network with bottleneck representation."""
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        latent = self.encoder(x)
-        reconstructed = self.decoder(latent)
-        return reconstructed
+        def __init__(self, input_dim: int = 10, latent_dim: int = 8):
+            super(AutoencoderNet, self).__init__()
+            # Encoder
+            self.encoder = nn.Sequential(
+                nn.Linear(input_dim, 16),
+                nn.LeakyReLU(0.2),
+                nn.Linear(16, latent_dim),
+                nn.LeakyReLU(0.2)
+            )
+            # Decoder
+            self.decoder = nn.Sequential(
+                nn.Linear(latent_dim, 16),
+                nn.LeakyReLU(0.2),
+                nn.Linear(16, input_dim)
+            )
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            latent = self.encoder(x)
+            reconstructed = self.decoder(latent)
+            return reconstructed
+else:
+    class AutoencoderNet:
+        def __init__(self, *args, **kwargs):
+            pass
 
 
 class DeepAutoencoderAnomalyDetector:
@@ -55,9 +68,14 @@ class DeepAutoencoderAnomalyDetector:
         self.input_dim = input_dim
         self.threshold_percentile = threshold_percentile
         self.lr = lr
-        self.model = AutoencoderNet(input_dim=input_dim, latent_dim=8)
-        self.criterion = nn.MSELoss()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=1e-5)
+        if TORCH_AVAILABLE:
+            self.model = AutoencoderNet(input_dim=input_dim, latent_dim=8)
+            self.criterion = nn.MSELoss()
+            self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=1e-5)
+        else:
+            self.model = None
+            self.criterion = None
+            self.optimizer = None
         self.is_trained = False
         self.reconstruction_threshold = 0.15  # Default baseline threshold
         self.feature_means = None
@@ -75,7 +93,7 @@ class DeepAutoencoderAnomalyDetector:
         """
         Trains the Autoencoder on normal baseline feature vectors.
         """
-        if not features_list or len(features_list) < 5:
+        if not TORCH_AVAILABLE or not features_list or len(features_list) < 5:
             return
 
         X_raw = np.array(features_list, dtype=np.float32)
@@ -115,8 +133,8 @@ class DeepAutoencoderAnomalyDetector:
         """
         x_raw = np.array([feature_vector], dtype=np.float32)
 
-        if not self.is_trained:
-            # Fallback heuristic if not yet trained
+        if not TORCH_AVAILABLE or not self.is_trained:
+            # Fallback heuristic if not yet trained or torch unavailable
             heuristic = min(1.0, max(0.0, float(np.mean(feature_vector)) / 100.0))
             return {
                 "raw_reconstruction_loss": heuristic,
