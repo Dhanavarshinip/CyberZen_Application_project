@@ -310,6 +310,24 @@ if DIST_DIR.exists() and (DIST_DIR / "index.html").exists():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
+        if full_path in ("download", "download/setup"):
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(
+                url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Setup-1.0.0.exe",
+                status_code=307
+            )
+        if full_path == "download/portable":
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(
+                url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Portable-1.0.0.exe",
+                status_code=307
+            )
+        if full_path == "download/extension":
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(
+                url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/cyberzen-chrome-extension.zip",
+                status_code=307
+            )
         if full_path.startswith("api") or full_path.startswith("docs") or full_path == "openapi.json":
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Endpoint not found")

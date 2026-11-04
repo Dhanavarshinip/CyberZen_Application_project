@@ -492,9 +492,10 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
                             "X-Content-Type-Options": "nosniff"
                         }
                     )
-        raise HTTPException(
-            status_code=404,
-            detail="Windows installer package is currently being generated. Please check back in a moment or run the packaging workflow."
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(
+            url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Setup-1.0.0.exe",
+            status_code=307
         )
 
     @router.get("/download/signing-guidance")
