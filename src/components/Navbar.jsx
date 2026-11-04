@@ -47,6 +47,7 @@ export default function Navbar({
     { id: 'incidents', label: 'Incidents', icon: AlertTriangle },
     { id: 'devices', label: 'Devices', icon: Laptop },
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'download', label: 'Install App', icon: Download },
   ];
 
   const getConnectionConfig = () => {

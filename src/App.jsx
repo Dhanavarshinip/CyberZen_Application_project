@@ -11,6 +11,7 @@ import ActivityView from './components/ActivityView';
 import IncidentsView from './components/IncidentsView';
 import DevicesView from './components/DevicesView';
 import SettingsView from './components/SettingsView';
+import DownloadView from './components/public/DownloadView';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { apiClient } from './services/apiClient';
 
@@ -47,7 +48,7 @@ function MainApp() {
     try {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
-      if (tabParam && ['home', 'activity', 'incidents', 'devices', 'settings'].includes(tabParam)) {
+      if (tabParam && ['home', 'activity', 'incidents', 'devices', 'settings', 'download'].includes(tabParam)) {
         return tabParam;
       }
     } catch (_) {}
@@ -61,7 +62,7 @@ function MainApp() {
       try {
         const params = new URLSearchParams(window.location.search);
         const tab = params.get('tab');
-        if (tab && ['home', 'activity', 'incidents', 'devices', 'settings'].includes(tab)) {
+        if (tab && ['home', 'activity', 'incidents', 'devices', 'settings', 'download'].includes(tab)) {
           setActiveTab(tab);
           setNavHistory(prev => (prev[prev.length - 1] === tab ? prev : [...prev, tab]));
         }
@@ -615,6 +616,7 @@ function MainApp() {
           )}
           {activeTab === 'devices' && <DevicesView onDeviceRegistered={fetchData} />}
           {activeTab === 'settings' && <SettingsView />}
+          {activeTab === 'download' && <DownloadView />}
         </ErrorBoundary>
       </main>
 
