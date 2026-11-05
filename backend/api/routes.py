@@ -3,7 +3,7 @@ FastAPI REST API Routes for CyberThreat AI System.
 """
 
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, Query, Body, Header, Response
+from fastapi import APIRouter, HTTPException, Query, Body, Header, Response, Request
 from fastapi.responses import FileResponse
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -1063,94 +1063,122 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         }
 
     @router.get("/extension/active-pairing")
-    def get_active_pairing(device_id: Optional[str] = None):
+    def get_active_pairing(device_id: Optional[str] = None, request: Request = None):
         """Allows Chrome Extension to discover the active authenticated user automatically on any host machine."""
-        global _active_pairing
-        email = _active_pairing.get("email")
-        user_id = _active_pairing.get("user_id")
-        dev_id = _active_pairing.get("device_id")
+        try:
+            global _active_pairing
+            email = _active_pairing.get("email")
+            user_id = _active_pairing.get("user_id")
+            dev_id = _active_pairing.get("device_id")
 
-        # 1. Fall back to SQLite database active pairing
-        if not email and hasattr(db, "get_active_pairing"):
-            try:
-                db_pairing = db.get_active_pairing()
-                if db_pairing and db_pairing.get("email"):
-                    email = db_pairing.get("email")
-                    user_id = db_pairing.get("user_id")
-                    dev_id = dev_id or db_pairing.get("device_id")
-                    _active_pairing.update(db_pairing)
-            except Exception:
-                pass
+            # 1. Fall back to SQLite database active pairing
+            if not email and hasattr(db, "get_active_pairing"):
+                try:
+                    db_pairing = db.get_active_pairing()
+                    if db_pairing and db_pairing.get("email"):
+                        email = db_pairing.get("email")
+                        user_id = db_pairing.get("user_id")
+                        dev_id = dev_id or db_pairing.get("device_id")
+                        _active_pairing.update(db_pairing)
+                except Exception:
+                    pass
 
-        # 2. Fall back to DATA_DIR / active_pairing.json
-        if not email:
-            try:
-                from backend.config import DATA_DIR
-                pairing_file = Path(DATA_DIR) / "active_pairing.json"
-                if pairing_file.exists():
-                    data = json.loads(pairing_file.read_text(encoding="utf-8"))
-                    if data.get("email"):
-                        email = data.get("email")
-                        user_id = data.get("user_id")
-                        dev_id = dev_id or data.get("device_id")
-                        _active_pairing.update(data)
-            except Exception:
-                pass
+            # 2. Fall back to DATA_DIR / active_pairing.json
+            if not email:
+                try:
+                    from backend.config import DATA_DIR
+                    pairing_file = Path(DATA_DIR) / "active_pairing.json"
+                    if pairing_file.exists():
+                        data = json.loads(pairing_file.read_text(encoding="utf-8"))
+                        if data.get("email"):
+                            email = data.get("email")
+                            user_id = data.get("user_id")
+                            dev_id = dev_id or data.get("device_id")
+                            _active_pairing.update(data)
+                except Exception:
+                    pass
 
-        # 3. Fall back to local pairing_credentials.json if present
-        if not email:
-            candidate_dirs = [
-                Path(__file__).resolve().parent.parent.parent / "chrome_extension",
-                Path("chrome_extension").resolve(),
-                Path("D:/cyberthreat-extension")
-            ]
-            local_app_data = os.environ.get("LOCALAPPDATA", "")
-            if local_app_data:
-                candidate_dirs.append(Path(local_app_data) / "CyberThreatAI" / "chrome_extension")
-            for c_dir in candidate_dirs:
-                if c_dir.exists():
-                    creds_file = c_dir / "pairing_credentials.json"
-                    if creds_file.exists():
-                        try:
-                            creds = json.loads(creds_file.read_text(encoding="utf-8"))
-                            if creds.get("email"):
-                                email = creds.get("email")
-                                user_id = creds.get("user_id")
-                                dev_id = dev_id or creds.get("device_id")
-                                _active_pairing.update(creds)
-                                break
-                        except Exception:
-                            pass
+            # 3. Fall back to local pairing_credentials.json if present
+            if not email:
+                try:
+                    candidate_dirs = [
+                        Path(__file__).resolve().parent.parent.parent / "chrome_extension",
+                        Path("chrome_extension").resolve(),
+                        Path("D:/cyberthreat-extension")
+                    ]
+                    local_app_data = os.environ.get("LOCALAPPDATA", "")
+                    if local_app_data:
+                        candidate_dirs.append(Path(local_app_data) / "CyberThreatAI" / "chrome_extension")
+                    for c_dir in candidate_dirs:
+                        if c_dir.exists():
+                            creds_file = c_dir / "pairing_credentials.json"
+                            if creds_file.exists():
+                                try:
+                                    creds = json.loads(creds_file.read_text(encoding="utf-8"))
+                                    if creds.get("email"):
+                                        email = creds.get("email")
+                                        user_id = creds.get("user_id")
+                                        dev_id = dev_id or creds.get("device_id")
+                                        _active_pairing.update(creds)
+                                        break
+                                except Exception:
+                                    pass
+                except Exception:
+                    pass
 
-        # 4. Fall back to most recent user in SQLite
-        if not email and hasattr(db, "get_most_recent_user"):
-            try:
-                recent_user = db.get_most_recent_user()
-                if recent_user and recent_user.get("email"):
-                    email = recent_user.get("email")
-                    user_id = recent_user.get("id")
-            except Exception:
-                pass
+            # 4. Fall back to most recent user in SQLite
+            if not email and hasattr(db, "get_most_recent_user"):
+                try:
+                    recent_user = db.get_most_recent_user()
+                    if recent_user and recent_user.get("email"):
+                        email = recent_user.get("email")
+                        user_id = recent_user.get("id")
+                except Exception:
+                    pass
 
-        target_dev = device_id or dev_id or (real_monitor.device_id if real_monitor else "DEV-LOCAL")
-        target_uid = user_id or (real_monitor.user_id if real_monitor else "current_user")
-        target_email = email
+            target_dev = device_id or dev_id or (real_monitor.device_id if real_monitor else "DEV-LOCAL")
+            target_uid = user_id or (real_monitor.user_id if real_monitor else "current_user")
+            target_email = email
 
-        is_paired = bool(target_email and target_email != "Not Paired" and target_email != "unpaired@cyberthreat.local" and target_email != "current_user")
+            is_paired = bool(target_email and target_email != "Not Paired" and target_email != "unpaired@cyberthreat.local" and target_email != "current_user")
 
-        allowed_list = db.get_allowed_emails(target_uid) if hasattr(db, "get_allowed_emails") else []
-        if target_email and target_email.lower() not in [e.lower() for e in allowed_list]:
-            allowed_list.insert(0, target_email.lower())
+            allowed_list = []
+            if hasattr(db, "get_allowed_emails"):
+                try:
+                    allowed_list = db.get_allowed_emails(target_uid)
+                except Exception:
+                    allowed_list = []
 
-        return {
-            "user_id": target_uid,
-            "email": target_email or "unpaired@cyberthreat.local",
-            "user_email": target_email or "unpaired@cyberthreat.local",
-            "device_id": target_dev,
-            "server_url": "http://127.0.0.1:8000",
-            "is_paired": is_paired,
-            "allowed_emails": allowed_list
-        }
+            if target_email and target_email.lower() not in [e.lower() for e in allowed_list]:
+                allowed_list.insert(0, target_email.lower())
+
+            resolved_server = "https://cyberzen-security-api.onrender.com"
+            if request:
+                base_str = str(request.base_url).rstrip("/")
+                if "127.0.0.1" in base_str or "localhost" in base_str:
+                    resolved_server = "http://127.0.0.1:8000"
+                else:
+                    resolved_server = base_str
+
+            return {
+                "user_id": target_uid,
+                "email": target_email or "unpaired@cyberthreat.local",
+                "user_email": target_email or "unpaired@cyberthreat.local",
+                "device_id": target_dev,
+                "server_url": resolved_server,
+                "is_paired": is_paired,
+                "allowed_emails": allowed_list
+            }
+        except Exception as e:
+            return {
+                "user_id": "current_user",
+                "email": "unpaired@cyberthreat.local",
+                "user_email": "unpaired@cyberthreat.local",
+                "device_id": device_id or "DEV-LOCAL",
+                "server_url": "https://cyberzen-security-api.onrender.com",
+                "is_paired": False,
+                "allowed_emails": []
+            }
 
     @router.post("/browser/launch")
     def launch_protected_browser(payload: Dict[str, Any] = Body(default={})):

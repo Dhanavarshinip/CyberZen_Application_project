@@ -15,7 +15,7 @@ import DownloadView from './components/public/DownloadView';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { apiClient } from './services/apiClient';
 
-const PUBLIC_CLOUD_BACKEND = 'https://ranging-ment-protecting-qty.trycloudflare.com/api';
+const PUBLIC_CLOUD_BACKEND = 'https://cyberzen-security-api.onrender.com/api';
 
 const getDynamicApiBase = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;

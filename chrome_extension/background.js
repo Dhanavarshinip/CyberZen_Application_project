@@ -1,16 +1,72 @@
 /**
- * CyberThreat AI - Real-Time Browser Protection Service Worker (v3)
- * Authenticates & evaluates all website navigations against CyberThreat AI backend.
- * Provides instant real-time security verdicts to in-page overlays and browser action.
+ * CyberThreat AI - Real-Time Browser Protection Service Worker (v1.2.0)
+ * Dual-Engine Architecture: Auto-detects local high-speed engine (127.0.0.1:8000)
+ * and seamlessly fails over to the global cloud API (cyberzen-security-api.onrender.com).
+ * 
+ * Works 100% out-of-the-box on any machine, even when local desktop app is not running.
  */
 
-const BACKEND_URL = "http://127.0.0.1:8000/api/browser/event";
+const LOCAL_API_BASE = "http://127.0.0.1:8000/api";
+const CLOUD_API_BASE = "https://cyberzen-security-api.onrender.com/api";
 const FETCH_TIMEOUT_MS = 6000;
 
-// Cache to deduplicate rapid back-to-back checks on the exact same URL
+// State management
+let cachedApiBase = null;
+let lastProbeTime = 0;
+const PROBE_INTERVAL_MS = 15000; // Re-probe local availability every 15s
+
 const recentVerdicts = new Map();
 const tabLastEvaluatedUrl = new Map();
 const inFlightEvaluations = new Map();
+
+/**
+ * Resolves the active backend API base URL.
+ * Probes local 127.0.0.1:8000 first with a fast timeout (1200ms).
+ * If unreachable or down, automatically fails over to Cloud API.
+ */
+async function getApiBase() {
+  const now = Date.now();
+
+  // 1. Check if user configured a manual override in storage
+  try {
+    const stored = await chrome.storage.local.get(["custom_api_base", "prefer_cloud"]);
+    if (stored.custom_api_base) return stored.custom_api_base.replace(/\/+$/, "");
+    if (stored.prefer_cloud) return CLOUD_API_BASE;
+  } catch (_) {}
+
+  // 2. Return cached backend if tested recently
+  if (cachedApiBase && (now - lastProbeTime < PROBE_INTERVAL_MS)) {
+    return cachedApiBase;
+  }
+
+  // 3. Fast-probe local desktop engine
+  try {
+    const probeController = new AbortController();
+    const probeTimer = setTimeout(() => probeController.abort(), 1200);
+    const res = await fetch(`${LOCAL_API_BASE}/health`, { signal: probeController.signal });
+    clearTimeout(probeTimer);
+    if (res.ok) {
+      cachedApiBase = LOCAL_API_BASE;
+      lastProbeTime = now;
+      chrome.storage.local.set({
+        active_backend: "LOCAL",
+        active_api_url: LOCAL_API_BASE,
+        backend_name: "Local Desktop Engine (127.0.0.1:8000)"
+      }).catch(() => {});
+      return LOCAL_API_BASE;
+    }
+  } catch (_) {}
+
+  // 4. Default to Production Cloud Backend
+  cachedApiBase = CLOUD_API_BASE;
+  lastProbeTime = now;
+  chrome.storage.local.set({
+    active_backend: "CLOUD",
+    active_api_url: CLOUD_API_BASE,
+    backend_name: "CyberZen Cloud API (Render Production)"
+  }).catch(() => {});
+  return CLOUD_API_BASE;
+}
 
 function shouldSkipUrl(url) {
   if (!url || typeof url !== "string") return true;
@@ -27,7 +83,7 @@ function shouldSkipUrl(url) {
     ) {
       return true;
     }
-    // Only skip CyberThreat AI's own backend and dev dashboard
+    // Skip CyberThreat AI's own local dashboard and dev server
     if (
       (u.hostname === "127.0.0.1" || u.hostname === "localhost") &&
       (u.port === "8000" || u.port === "5173")
@@ -55,7 +111,7 @@ async function fetchWithTimeout(resource, options, timeoutMs = FETCH_TIMEOUT_MS)
 
 /**
  * Main evaluation orchestrator:
- * Queries backend, assigns badges, records verdicts, returns unified result.
+ * Queries backend (Local or Cloud with automatic fallback), assigns badges, records verdicts.
  */
 async function evaluateUrl(url, tabId = null, title = null) {
   if (shouldSkipUrl(url)) {
@@ -75,19 +131,19 @@ async function evaluateUrl(url, tabId = null, title = null) {
     domain = url;
   }
 
-  // Deduplicate rapid repeat queries (< 3.5 seconds) for the identical URL
+  // Deduplicate rapid repeat queries (< 3.5 seconds) for identical URL
   const cached = recentVerdicts.get(url);
   if (cached && (Date.now() - cached.timestamp < 3500)) {
     updateBadge(cached.verdict.status, tabId);
     return cached.verdict;
   }
 
-  // If already querying this URL, reuse in-flight promise to prevent duplicate requests
+  // If already querying this URL, reuse in-flight promise
   if (inFlightEvaluations.has(url)) {
     return await inFlightEvaluations.get(url);
   }
 
-  // Show evaluating indicator on badge
+  // Show evaluating indicator
   if (tabId) {
     try {
       chrome.action.setBadgeText({ text: "...", tabId });
@@ -111,23 +167,31 @@ async function evaluateUrl(url, tabId = null, title = null) {
       const headers = { "Content-Type": "application/json" };
       if (storage.auth_token) headers["Authorization"] = `Bearer ${storage.auth_token}`;
 
-      const response = await fetchWithTimeout(
-        BACKEND_URL,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            url,
-            title: title || "",
-            user_id: userId,
-            device_id: deviceId
-          })
-        },
-        FETCH_TIMEOUT_MS
-      );
+      const payload = JSON.stringify({
+        url,
+        title: title || "",
+        user_id: userId,
+        device_id: deviceId
+      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      // Resolve backend with automatic fallback
+      let apiBase = await getApiBase();
+      let response = null;
+
+      try {
+        response = await fetchWithTimeout(`${apiBase}/browser/event`, { method: "POST", headers, body: payload }, FETCH_TIMEOUT_MS);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      } catch (firstErr) {
+        // If local engine failed, failover immediately to cloud
+        if (apiBase.startsWith(LOCAL_API_BASE)) {
+          console.warn("[CyberThreat AI] Local backend query failed, switching to cloud failover:", firstErr.message);
+          apiBase = CLOUD_API_BASE;
+          cachedApiBase = CLOUD_API_BASE;
+          response = await fetchWithTimeout(`${apiBase}/browser/event`, { method: "POST", headers, body: payload }, FETCH_TIMEOUT_MS);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        } else {
+          throw firstErr;
+        }
       }
 
       const data = await response.json();
@@ -142,8 +206,9 @@ async function evaluateUrl(url, tabId = null, title = null) {
         status,
         domain: reportedDomain,
         risk_score: riskScore,
-        reasons: reasons.length > 0 ? reasons : [`Standard analysis completed for ${reportedDomain}.`],
+        reasons: reasons.length > 0 ? reasons : [`Standard threat analysis completed for ${reportedDomain}.`],
         url,
+        backend: apiBase.includes("127.0.0.1") ? "LOCAL" : "CLOUD",
         timestamp: Date.now()
       };
 
@@ -151,7 +216,7 @@ async function evaluateUrl(url, tabId = null, title = null) {
       if (tabId) tabLastEvaluatedUrl.set(tabId, url);
       updateBadge(status, tabId);
 
-      // Only trigger desktop notification for confirmed DANGEROUS threats (no spam for safe sites)
+      // Trigger desktop notification only for confirmed DANGEROUS threats
       if (status === "DANGEROUS") {
         try {
           chrome.notifications.create(`danger_${Date.now()}`, {
@@ -174,7 +239,7 @@ async function evaluateUrl(url, tabId = null, title = null) {
 
     } catch (err) {
       const isTimeout = err.name === "AbortError";
-      console.warn(`[CyberThreat AI] Backend analysis unavailable for ${domain}:`, err.message);
+      console.warn(`[CyberThreat AI] Threat analysis unavailable for ${domain}:`, err.message);
 
       const failVerdict = {
         status: "UNKNOWN",
@@ -182,8 +247,8 @@ async function evaluateUrl(url, tabId = null, title = null) {
         risk_score: null,
         reasons: [
           isTimeout
-            ? "Analysis timed out — CyberThreat AI backend is busy."
-            : "CyberThreat AI backend offline. Launch CyberThreat AI Desktop to enable real-time analysis."
+            ? "Threat analysis query timed out. Network latency detected."
+            : "Reconnecting to CyberZen Threat Intelligence Network..."
         ],
         check_failed: true,
         url,
@@ -232,7 +297,7 @@ function updateBadge(status, tabId) {
   } catch (_) {}
 }
 
-// 1. Message listener for direct content script queries (on load and SPA route change)
+// 1. Message listener for direct content script queries and actions
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "ANALYZE_URL") {
     const tabId = sender.tab?.id || null;
@@ -240,7 +305,70 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     evaluateUrl(request.url, tabId, title).then((verdict) => {
       sendResponse(verdict);
     });
-    return true; // Keep message channel open for async response
+    return true;
+  }
+
+  // Content script calls this to record Gmail / web events without page CSP issues
+  if (request.action === "RECORD_EVENT") {
+    (async () => {
+      try {
+        const apiBase = await getApiBase();
+        const storage = await chrome.storage.local.get(["user_id", "device_id", "auth_token"]);
+        const headers = { "Content-Type": "application/json" };
+        if (storage.auth_token) headers["Authorization"] = `Bearer ${storage.auth_token}`;
+
+        const payload = {
+          ...request.payload,
+          user_id: request.payload?.user_id || storage.user_id || "current_user",
+          device_id: request.payload?.device_id || storage.device_id || null
+        };
+
+        const res = await fetch(`${apiBase}/browser/event`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        sendResponse({ success: res.ok, data });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
+  }
+
+  // Return pairing details to content script or popup
+  if (request.action === "GET_PAIRING") {
+    (async () => {
+      try {
+        const apiBase = await getApiBase();
+        const res = await fetch(`${apiBase}/extension/active-pairing`, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const data = await res.json();
+          sendResponse({ success: true, pairing: data });
+          return;
+        }
+      } catch (_) {}
+      const stored = await chrome.storage.local.get(["user_email", "user_id", "device_id", "allowed_emails"]);
+      sendResponse({ success: !!stored.user_email, pairing: stored });
+    })();
+    return true;
+  }
+
+  if (request.action === "SYNC_PAIRING") {
+    ensurePairedCredentials().then((paired) => sendResponse({ success: paired }));
+    return true;
+  }
+
+  if (request.action === "GET_BACKEND_STATUS") {
+    getApiBase().then((api) => {
+      sendResponse({
+        active_api_url: api,
+        is_local: api.includes("127.0.0.1"),
+        backend_name: api.includes("127.0.0.1") ? "Local Engine" : "Cloud API"
+      });
+    });
+    return true;
   }
 });
 
@@ -250,14 +378,11 @@ chrome.webNavigation.onCommitted.addListener((details) => {
     chrome.tabs.get(details.tabId, (tab) => {
       const title = tab?.title || null;
       evaluateUrl(details.url, details.tabId, title).then((verdict) => {
-        // Proactively notify content script if already mounted
         chrome.tabs.sendMessage(details.tabId, {
           action: "SECURITY_VERDICT",
           url: details.url,
           verdict
-        }).catch(() => {
-          // Content script will fetch via ANALYZE_URL message upon mounting
-        });
+        }).catch(() => {});
       });
     });
   }
@@ -279,7 +404,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
-// 4. Tab switch listener: update badge when switching active tabs
+// 4. Tab switch listener
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
@@ -292,23 +417,25 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   } catch (_) {}
 });
 
-// Clean up state on tab close
 chrome.tabs.onRemoved.addListener((tabId) => {
   tabLastEvaluatedUrl.delete(tabId);
 });
 
-// Auto-load credentials from active-pairing API or pairing_credentials.json on startup
+// Auto-sync pairing credentials on startup and periodically
 async function ensurePairedCredentials() {
-  // 1. Try querying backend active pairing endpoint directly (dynamic on any machine)
+  const apiBase = await getApiBase();
+
+  // 1. Try querying active pairing endpoint from resolved backend (Local or Cloud)
   try {
-    const activeRes = await fetch("http://127.0.0.1:8000/api/extension/active-pairing");
+    const activeRes = await fetch(`${apiBase}/extension/active-pairing`, { signal: AbortSignal.timeout(3000) });
     if (activeRes.ok) {
       const activeData = await activeRes.json();
       if (activeData && activeData.email && activeData.email !== "unpaired@cyberthreat.local" && activeData.is_paired) {
         await chrome.storage.local.set({
           user_email: activeData.email,
           user_id: activeData.user_id || "current_user",
-          device_id: activeData.device_id || "DEV-LOCAL"
+          device_id: activeData.device_id || "DEV-LOCAL",
+          allowed_emails: activeData.allowed_emails || [activeData.email]
         });
         sendHeartbeat();
         return true;
@@ -326,7 +453,8 @@ async function ensurePairedCredentials() {
         await chrome.storage.local.set({
           user_email: creds.email,
           user_id: creds.user_id || "current_user",
-          device_id: creds.device_id || "DEV-HOST"
+          device_id: creds.device_id || "DEV-HOST",
+          allowed_emails: [creds.email]
         });
         sendHeartbeat();
         return true;
@@ -334,49 +462,29 @@ async function ensurePairedCredentials() {
     }
   } catch (_) {}
 
-  // 3. Fallback: query backend status directly
-  try {
-    const res = await fetch("http://127.0.0.1:8000/api/monitoring/status");
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.device_id) {
-        await chrome.storage.local.set({
-          device_id: data.device_id,
-          user_id: data.user_id || "current_user"
-        });
-      }
-    }
-  } catch (_) {}
   return false;
 }
 
 async function sendHeartbeat() {
   try {
+    const apiBase = await getApiBase();
     const storage = await chrome.storage.local.get(["user_email", "user_id", "device_id"]);
-    // If not paired yet, try auto-discovery now
     if (!storage.user_email || storage.user_email === "unpaired@cyberthreat.local") {
       await ensurePairedCredentials();
     }
     const updated = await chrome.storage.local.get(["user_email", "user_id", "device_id"]);
-    await fetch("http://127.0.0.1:8000/api/extension/heartbeat", {
+    await fetch(`${apiBase}/extension/heartbeat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         device_id: updated.device_id || "DEV-LOCAL",
         user_id: updated.user_id || "current_user",
         email: updated.user_email || "",
-        version: "1.1.0"
+        version: "1.2.0"
       })
     });
   } catch (_) {}
 }
-
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg && msg.action === "SYNC_PAIRING") {
-    ensurePairedCredentials().then((paired) => sendResponse({ success: paired }));
-    return true;
-  }
-});
 
 chrome.runtime.onInstalled.addListener(() => {
   ensurePairedCredentials();
@@ -389,5 +497,5 @@ chrome.runtime.onStartup.addListener(() => {
 // Periodic automated pairing & heartbeat check
 ensurePairedCredentials();
 sendHeartbeat();
-setInterval(ensurePairedCredentials, 10000);
-setInterval(sendHeartbeat, 25000);
+setInterval(ensurePairedCredentials, 15000);
+setInterval(sendHeartbeat, 30000);

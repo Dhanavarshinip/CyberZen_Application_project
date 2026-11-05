@@ -656,20 +656,19 @@
 
       if (!pairedEmail || pairedEmail === 'unpaired@cyberthreat.local' || allowedEmailsList.length === 0) {
         try {
-          const activeRes = await fetch('http://127.0.0.1:8000/api/extension/active-pairing', { signal: AbortSignal.timeout(2000) });
-          if (activeRes.ok) {
-            const activeData = await activeRes.json();
-            if (activeData && activeData.email && activeData.email !== 'unpaired@cyberthreat.local' && activeData.is_paired) {
-              pairedEmail = activeData.email.trim().toLowerCase();
-              const backendAllowed = Array.isArray(activeData.allowed_emails) ? activeData.allowed_emails.map(e => e.toLowerCase()) : [];
-              allowedEmailsList = Array.from(new Set([pairedEmail, ...backendAllowed].filter(Boolean)));
-              await chrome.storage.local.set({
-                user_email: pairedEmail,
-                user_id: activeData.user_id || 'current_user',
-                device_id: activeData.device_id || 'DEV-LOCAL',
-                allowed_emails: allowedEmailsList
-              });
-            }
+          const resp = await new Promise(resolve => {
+            chrome.runtime.sendMessage({ action: 'GET_PAIRING' }, resolve);
+          });
+          if (resp && resp.pairing && resp.pairing.email && resp.pairing.email !== 'unpaired@cyberthreat.local') {
+            pairedEmail = (resp.pairing.email || '').trim().toLowerCase();
+            const backendAllowed = Array.isArray(resp.pairing.allowed_emails) ? resp.pairing.allowed_emails.map(e => e.toLowerCase()) : [];
+            allowedEmailsList = Array.from(new Set([pairedEmail, ...backendAllowed].filter(Boolean)));
+            await chrome.storage.local.set({
+              user_email: pairedEmail,
+              user_id: resp.pairing.user_id || 'current_user',
+              device_id: resp.pairing.device_id || 'DEV-LOCAL',
+              allowed_emails: allowedEmailsList
+            });
           }
         } catch (_) {}
       }
@@ -833,10 +832,9 @@
         }
         chrome.storage.local.set({ reported_gmail_events: reported });
 
-        fetch('http://127.0.0.1:8000/api/browser/event', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        chrome.runtime.sendMessage({
+          action: 'RECORD_EVENT',
+          payload: {
             url: 'https://mail.google.com',
             title: `Gmail: ${subject.substring(0, 50)}`,
             user_id: storage.user_id || 'current_user',
@@ -846,8 +844,8 @@
             email_threat_indicators: indicators,
             status: verdict,
             reasons: reasons
-          })
-        }).catch(() => {});
+          }
+        });
       });
     }
 

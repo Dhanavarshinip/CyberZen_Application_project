@@ -1368,6 +1368,15 @@ class Database:
         """
         conn = self._get_conn()
         try:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_allowed_emails (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(user_id, email)
+                )
+            """)
             allowed = set()
             # 1. Primary registered user email
             if user_id:
@@ -1382,16 +1391,16 @@ class Database:
                     allowed.add(recent_u["email"].strip().lower())
 
             # 2. Additional allowed emails
-            if user_id:
-                rows = conn.execute("SELECT email FROM user_allowed_emails WHERE user_id = ?", (user_id,)).fetchall()
+            try:
+                if user_id:
+                    rows = conn.execute("SELECT email FROM user_allowed_emails WHERE user_id = ?", (user_id,)).fetchall()
+                else:
+                    rows = conn.execute("SELECT email FROM user_allowed_emails").fetchall()
                 for r in rows:
                     if r["email"]:
                         allowed.add(r["email"].strip().lower())
-            else:
-                rows = conn.execute("SELECT email FROM user_allowed_emails").fetchall()
-                for r in rows:
-                    if r["email"]:
-                        allowed.add(r["email"].strip().lower())
+            except Exception:
+                pass
 
             return sorted(list(allowed))
         finally:
@@ -1403,6 +1412,15 @@ class Database:
         """
         conn = self._get_conn()
         try:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_allowed_emails (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(user_id, email)
+                )
+            """)
             primary_email = None
             if user_id:
                 u_row = conn.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
@@ -1414,12 +1432,15 @@ class Database:
                     primary_email = recent_u["email"].strip().lower()
 
             additional_rows = []
-            if user_id:
-                rows = conn.execute("SELECT id, email, created_at FROM user_allowed_emails WHERE user_id = ? ORDER BY created_at ASC", (user_id,)).fetchall()
-                additional_rows = [dict(r) for r in rows]
-            else:
-                rows = conn.execute("SELECT id, email, created_at FROM user_allowed_emails ORDER BY created_at ASC").fetchall()
-                additional_rows = [dict(r) for r in rows]
+            try:
+                if user_id:
+                    rows = conn.execute("SELECT id, email, created_at FROM user_allowed_emails WHERE user_id = ? ORDER BY created_at ASC", (user_id,)).fetchall()
+                    additional_rows = [dict(r) for r in rows]
+                else:
+                    rows = conn.execute("SELECT id, email, created_at FROM user_allowed_emails ORDER BY created_at ASC").fetchall()
+                    additional_rows = [dict(r) for r in rows]
+            except Exception:
+                pass
 
             all_emails = set([primary_email] if primary_email else [])
             for r in additional_rows:
