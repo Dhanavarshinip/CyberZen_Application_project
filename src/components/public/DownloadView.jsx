@@ -172,7 +172,10 @@ export default function DownloadView({ onDownloaded }) {
         let fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Setup-1.0.0.exe';
         let targetFilename = 'CyberZen-Operations-Center-Setup-1.0.0.exe';
 
-        if (activePlatformTab === 'windows-portable') {
+        if (activePlatformTab === 'windows-zip') {
+          fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Windows-Setup-v1.0.0.zip';
+          targetFilename = 'CyberZen-Windows-Setup-v1.0.0.zip';
+        } else if (activePlatformTab === 'windows-portable') {
           fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Portable-1.0.0.exe';
           targetFilename = 'CyberZen-Operations-Center-Portable-1.0.0.exe';
         } else if (activePlatformTab === 'extension') {
@@ -282,6 +285,7 @@ export default function DownloadView({ onDownloaded }) {
       }}>
         {[
           { id: 'windows-exe', label: 'Windows Setup (.exe)', icon: HardDrive, tag: 'Recommended' },
+          { id: 'windows-zip', label: 'Setup Archive (.zip)', icon: HardDrive, tag: 'No Browser Warnings' },
           { id: 'windows-portable', label: 'Portable ZIP Archive', icon: Laptop, tag: 'No Install' },
           { id: 'powershell', label: 'PowerShell Deployment', icon: Terminal, tag: 'CLI' },
           { id: 'extension', label: 'Chrome Extension', icon: Shield, tag: 'Companion' }
@@ -371,6 +375,7 @@ export default function DownloadView({ onDownloaded }) {
               <div>
                 <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
                   {activePlatformTab === 'windows-exe' && 'CyberZen for Windows (Installer)'}
+                  {activePlatformTab === 'windows-zip' && 'CyberZen Setup Archive (.ZIP Package)'}
                   {activePlatformTab === 'windows-portable' && 'CyberZen Windows Portable Bundle'}
                   {activePlatformTab === 'powershell' && 'Automated PowerShell Host Agent Setup'}
                   {activePlatformTab === 'extension' && 'CyberZen Real-Time Chrome Extension'}
@@ -389,6 +394,7 @@ export default function DownloadView({ onDownloaded }) {
 
             <p style={{ fontSize: '0.94rem', color: '#94a3b8', margin: '0 0 1.25rem 0', lineHeight: 1.6 }}>
               {activePlatformTab === 'windows-exe' && 'Standard Windows package bundling the complete Electron Operations Center, native background telemetry collectors, local ML anomaly weights, and offline SQLite storage.'}
+              {activePlatformTab === 'windows-zip' && 'Pre-zipped setup archive. Bypasses browser download security prompts. Extract and run CyberZen-Setup-1.0.0.exe directly.'}
               {activePlatformTab === 'windows-portable' && 'Self-contained zero-install archive. Extract to any directory or USB stick to run CyberZen immediately without writing to Windows program registry.'}
               {activePlatformTab === 'powershell' && 'Run a single PowerShell command to automatically install and activate the host monitoring agent on this device.'}
               {activePlatformTab === 'extension' && 'Real-time browser security extension. Inspects navigation headers, defends against deceptive lookalike domains, and auto-pairs with your desktop host monitor.'}
@@ -479,6 +485,8 @@ export default function DownloadView({ onDownloaded }) {
                       ? 'Re-Download File'
                       : activePlatformTab === 'extension'
                       ? 'Download Chrome Extension (.zip)'
+                      : activePlatformTab === 'windows-zip'
+                      ? 'Download Setup ZIP (.zip)'
                       : activePlatformTab === 'windows-portable'
                       ? 'Download Portable App (.exe)'
                       : 'Download Windows Installer (.exe)'}
@@ -560,25 +568,35 @@ export default function DownloadView({ onDownloaded }) {
           </div>
         </div>
 
-        {/* Windows Defender SmartScreen Notice Accordion */}
+        {/* Browser & Windows SmartScreen Notice Accordion */}
         <div style={{
           marginTop: '2rem',
           background: 'rgba(245, 158, 11, 0.08)',
           border: '1px solid rgba(245, 158, 11, 0.25)',
           borderRadius: '10px',
-          padding: '1.15rem 1.35rem',
+          padding: '1.25rem 1.45rem',
           display: 'flex',
           gap: '1rem',
           alignItems: 'flex-start'
         }}>
-          <AlertTriangle size={20} style={{ color: '#fbbf24', flexShrink: 0, marginTop: '0.15rem' }} />
+          <AlertTriangle size={22} style={{ color: '#fbbf24', flexShrink: 0, marginTop: '0.15rem' }} />
           <div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fbbf24', marginBottom: '0.2rem' }}>
-              Windows Defender SmartScreen Notice
+            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#fbbf24', marginBottom: '0.4rem' }}>
+              Browser &amp; SmartScreen Notice: How to Complete Download
             </div>
-            <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: 0, lineHeight: 1.5 }}>
-              This installer uses an independent research signature. If Windows Defender SmartScreen displays <em>"Windows protected your PC"</em>: click <strong>"More info"</strong> and select <strong>"Run anyway"</strong>.
-            </p>
+            <div style={{ fontSize: '0.84rem', color: '#cbd5e1', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div>
+                <strong>1. In Chrome / Edge Downloads ("Isn't commonly downloaded"):</strong><br />
+                In your browser downloads popup, click the <strong>three dots (...)</strong> next to the file ➔ Select <strong>"Keep"</strong> ➔ Click <strong>"Show more"</strong> ➔ Click <strong>"Keep anyway"</strong>.
+              </div>
+              <div>
+                <strong>2. In Windows Defender ("Windows protected your PC"):</strong><br />
+                Click <strong>"More info"</strong> ➔ Select <strong>"Run anyway"</strong>.
+              </div>
+              <div style={{ marginTop: '0.2rem', color: '#00f0ff', fontWeight: 600 }}>
+                💡 <em>Tip: Switch to the <strong>"Setup Archive (.zip)"</strong> tab above for a 1-click download with zero browser warnings.</em>
+              </div>
+            </div>
           </div>
         </div>
       </div>

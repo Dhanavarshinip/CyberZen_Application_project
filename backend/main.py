@@ -316,6 +316,12 @@ if DIST_DIR.exists() and (DIST_DIR / "index.html").exists():
                 url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Setup-1.0.0.exe",
                 status_code=307
             )
+        if full_path in ("download/zip", "download/setup-zip"):
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(
+                url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Windows-Setup-v1.0.0.zip",
+                status_code=307
+            )
         if full_path == "download/portable":
             from fastapi.responses import RedirectResponse
             return RedirectResponse(
