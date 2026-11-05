@@ -169,16 +169,20 @@ export default function DownloadView({ onDownloaded }) {
       triggerConfetti();
 
       try {
-        const apiBase = apiClient.getApiBase ? apiClient.getApiBase() : 'http://127.0.0.1:8000/api';
-        const cleanBase = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
-        const downloadPath = downloadInfo.download_url || '/download/windows';
-        const cleanPath = downloadPath.startsWith('/') ? downloadPath : `/${downloadPath}`;
-        const finalEndpoint = cleanPath.startsWith('/api/') ? cleanPath.substring(4) : cleanPath;
-        const fullUrl = `${cleanBase}${finalEndpoint}`;
+        let fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Setup-1.0.0.exe';
+        let targetFilename = 'CyberZen-Operations-Center-Setup-1.0.0.exe';
+
+        if (activePlatformTab === 'windows-portable') {
+          fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Portable-1.0.0.exe';
+          targetFilename = 'CyberZen-Operations-Center-Portable-1.0.0.exe';
+        } else if (activePlatformTab === 'extension') {
+          fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/cyberzen-chrome-extension.zip';
+          targetFilename = 'cyberzen-chrome-extension.zip';
+        }
 
         const a = document.createElement('a');
         a.href = fullUrl;
-        a.setAttribute('download', downloadInfo.filename || 'CyberZen-Operations-Center-Setup-1.0.0.exe');
+        a.setAttribute('download', targetFilename);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -188,7 +192,7 @@ export default function DownloadView({ onDownloaded }) {
         if (onDownloaded) onDownloaded();
       } catch (err) {
         console.error('[DownloadView] Download trigger failed:', err);
-        setDownloadError('Could not start download. Please ensure the backend server is reachable.');
+        setDownloadError('Could not start download. Please ensure your browser permits file downloads.');
       } finally {
         setTimeout(() => {
           setIsLoading(false);
@@ -428,7 +432,7 @@ export default function DownloadView({ onDownloaded }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b' }}>
                   <span>One-Liner Install Script:</span>
                   <button
-                    onClick={() => handleCopyCommand('irm https://raw.githubusercontent.com/cyberzen/agent/main/install.ps1 | iex')}
+                    onClick={() => handleCopyCommand('irm https://cyberzen-security-api.onrender.com/install.ps1 | iex')}
                     style={{ background: 'none', border: 'none', color: copiedCmd ? '#10b981' : '#00f0ff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 700 }}
                   >
                     {copiedCmd ? <Check size={12} /> : <Copy size={12} />}
@@ -436,7 +440,7 @@ export default function DownloadView({ onDownloaded }) {
                   </button>
                 </div>
                 <code style={{ fontSize: '0.78rem', color: '#00f0ff', wordBreak: 'break-all', background: '#030712', padding: '0.6rem', borderRadius: '6px', border: '1px solid #1e293b' }}>
-                  irm https://raw.githubusercontent.com/cyberzen/agent/main/install.ps1 | iex
+                  irm https://cyberzen-security-api.onrender.com/install.ps1 | iex
                 </code>
               </div>
             ) : (
@@ -472,8 +476,12 @@ export default function DownloadView({ onDownloaded }) {
                     {isLoading
                       ? 'Downloading CyberZen...'
                       : hasDownloaded
-                      ? 'Re-Download Installer'
-                      : 'Download Installer (.exe)'}
+                      ? 'Re-Download File'
+                      : activePlatformTab === 'extension'
+                      ? 'Download Chrome Extension (.zip)'
+                      : activePlatformTab === 'windows-portable'
+                      ? 'Download Portable App (.exe)'
+                      : 'Download Windows Installer (.exe)'}
                   </span>
                 </button>
 

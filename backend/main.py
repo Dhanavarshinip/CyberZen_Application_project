@@ -310,7 +310,7 @@ if DIST_DIR.exists() and (DIST_DIR / "index.html").exists():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
-        if full_path in ("download", "download/setup"):
+        if full_path in ("download/setup", "download/exe"):
             from fastapi.responses import RedirectResponse
             return RedirectResponse(
                 url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Setup-1.0.0.exe",
@@ -328,6 +328,22 @@ if DIST_DIR.exists() and (DIST_DIR / "index.html").exists():
                 url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/cyberzen-chrome-extension.zip",
                 status_code=307
             )
+        if full_path == "install.ps1":
+            from fastapi.responses import PlainTextResponse
+            ps_script = (
+                'Write-Host "==================================================" -ForegroundColor Cyan\n'
+                'Write-Host " CyberZen Operations Center - Automated Installer" -ForegroundColor Green\n'
+                'Write-Host "==================================================" -ForegroundColor Cyan\n'
+                '$setupUrl = "https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Setup-1.0.0.exe"\n'
+                '$dest = "$env:TEMP\\CyberZen-Operations-Center-Setup.exe"\n'
+                'Write-Host "[*] Downloading CyberZen installer from cloud..." -ForegroundColor Yellow\n'
+                'Invoke-WebRequest -Uri $setupUrl -OutFile $dest\n'
+                'Write-Host "[+] Download complete. Launching installer..." -ForegroundColor Green\n'
+                'Start-Process -FilePath $dest\n'
+            )
+            return PlainTextResponse(ps_script)
+        if full_path in ("install", "download"):
+            return FileResponse(str(DIST_DIR / "index.html"))
         if full_path.startswith("api") or full_path.startswith("docs") or full_path == "openapi.json":
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="Endpoint not found")
