@@ -670,7 +670,11 @@ function AuthConsumer() {
     window.location.pathname.includes('download') ||
     window.location.search.includes('page=download') ||
     window.location.search.includes('tab=download') ||
-    window.location.search.includes('install')
+    window.location.search.includes('install') ||
+    window.location.hostname.includes('github.io') ||
+    window.location.hostname.includes('aws') ||
+    window.location.hostname.includes('amplifyapp') ||
+    window.location.hostname.includes('vercel.app')
   );
 
   if (isInstallationPage) {

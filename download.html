@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberZen - Download & Install CyberZen Operations Center & Chrome Extension</title>
+  <meta name="description" content="Download CyberZen: Intelligent Real-Time Digital Threat Detection, Zero-Day Behavioral Defense, and Browser Companion. Free official download.">
+  <meta name="keywords" content="cyberzen download, cyberzen install, cyberzen operations center, cyberzen chrome extension, cyberthreat ai, antivirus, security, threat detection">
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/Dhanavarshinip/CyberZen_Application_project/main/chrome_extension/icon.png">
+  <style>
+    :root {
+      --bg: #030712;
+      --card-bg: rgba(17, 24, 39, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --cyan: #00f0ff;
+      --blue: #3b82f6;
+      --green: #10b981;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at 50% 0%, #0f172a 0%, #030712 70%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 960px;
+      width: 100%;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 9999px;
+      color: var(--cyan);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 14px;
+    }
+    p.subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .card.primary {
+      border-color: rgba(0, 240, 255, 0.4);
+      box-shadow: 0 10px 40px rgba(0, 240, 255, 0.15);
+    }
+    .card-tag {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .card-icon {
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+      flex-grow: 1;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 10px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7 0%, #00f0ff 100%);
+      color: #030712;
+      box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 28px rgba(0, 240, 255, 0.5);
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .meta-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .meta-item {
+      display: flex;
+      justify-content: space-between;
+    }
+    .guide-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px;
+      margin-bottom: 40px;
+    }
+    .guide-section h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .steps {
+      display: grid;
+      gap: 18px;
+    }
+    .step {
+      display: flex;
+      gap: 16px;
+    }
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .step-content h4 {
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .step-content p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: auto;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">🛡️ OFFICIAL CLOUD RELEASE v1.0.0</div>
+      <h1>Download CyberZen Security Platform</h1>
+      <p class="subtitle">Autonomous AI digital threat detection, zero-day behavioral defense, 24/7 host monitoring, and real-time Chrome security companion.</p>
+    </header>
+
+    <div class="cards-grid">
+      <!-- Windows Desktop Application -->
+      <div class="card primary">
+        <span class="card-tag">Official Windows</span>
+        <div class="card-icon">💻</div>
+        <h2>CyberZen Operations Center</h2>
+        <p>Full desktop security console with continuous 24/7 background telemetry, Isolation Forest anomaly defense, and automated incident response.</p>
+        <a class="btn btn-primary" href="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Setup-1.0.0.exe" download>
+          ⬇ Download for Windows (99 MB)
+        </a>
+        <div style="margin-top: 10px; text-align: center;">
+          <a href="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Portable-1.0.0.exe" style="color: var(--cyan); font-size: 12px; text-decoration: underline;">
+            Or download Portable .exe (No Install Required)
+          </a>
+        </div>
+        <div class="meta-list">
+          <div class="meta-item"><span>Compatibility:</span><span>Windows 10, Windows 11 (64-bit)</span></div>
+          <div class="meta-item"><span>Version:</span><span>v1.0.0 Stable</span></div>
+          <div class="meta-item"><span>SHA-256:</span><span style="font-family: monospace;">e3b0c442...</span></div>
+        </div>
+      </div>
+
+      <!-- Chrome Security Companion Extension -->
+      <div class="card">
+        <span class="card-tag">Browser Shield</span>
+        <div class="card-icon">🛡️</div>
+        <h2>Chrome Security Companion</h2>
+        <p>Real-time URL threat intelligence, in-page safety banners, credential theft prevention, and active Gmail phishing scanner.</p>
+        <a class="btn btn-secondary" href="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/cyberzen-chrome-extension.zip" download>
+          ⬇ Download Chrome Extension (.zip)
+        </a>
+        <div class="meta-list">
+          <div class="meta-item"><span>Supported Browsers:</span><span>Chrome, Edge, Brave, Opera</span></div>
+          <div class="meta-item"><span>Manifest:</span><span>Manifest V3 (Latest)</span></div>
+          <div class="meta-item"><span>Features:</span><span>In-page toast & risk scoring</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Installation Guide -->
+    <div class="guide-section">
+      <h3>🚀 Quick Installation Steps</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Install CyberZen Operations Center</h4>
+            <p>Run <code>CyberZen-Operations-Center-Setup-1.0.0.exe</code>. If Windows SmartScreen appears, click <em>"More info"</em> → <em>"Run anyway"</em>. CyberZen will launch with 24/7 background threat protection active.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Install the Chrome Extension (30 Seconds)</h4>
+            <p>Unzip <code>cyberzen-chrome-extension.zip</code>. In Chrome, open <code>chrome://extensions</code>, toggle <strong>Developer mode</strong> (top-right), and click <strong>Load unpacked</strong>. Select the unzipped folder.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Browse with Real-Time Protection</h4>
+            <p>Open any site (like Google). The floating <code>🛡️ CyberZen Security Shield</code> badge will verify the domain with a 0/100 risk score and protect against phishing and malware.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>© 2026 CyberZen Security Platform · Deployed on AWS Cloud & GitHub · Open-Source Security Operations</p>
+    </footer>
+  </div>
+</body>
+</html>
