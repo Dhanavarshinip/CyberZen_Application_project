@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dhanavarshinip.github.io/CyberZen_Application_project/sitemap.xml
