@@ -358,21 +358,12 @@
     const status = (verdict.status || 'UNKNOWN').toUpperCase();
     const domain = verdict.domain || location.hostname || 'Website';
 
-    // 1. For SAFE, UNKNOWN, or benign pages: do NOT show an in-page popup overlay.
-    // The user explicitly requested: badge only in the toolbar, no repeated popups.
-    if (status === 'SAFE' || status === 'UNKNOWN' || status === 'INFO') {
-      const root = ensureMountPoint();
-      const existing = root.querySelector('.ct-container');
-      if (existing) existing.remove();
-      return;
-    }
-
-    // 2. For genuine threats (DANGEROUS or SUSPICIOUS): apply cooldown to prevent repeat glitches
+    // Show popup overlay for all domains (SAFE, SUSPICIOUS, DANGEROUS) with anti-glitch cooldown
     const alertKey = `${domain}:${status}`;
     const now = Date.now();
     const lastAlert = recentAlertTimes.get(alertKey) || 0;
-    if (now - lastAlert < 60000) {
-      // Already alerted within 60 seconds for this domain, suppress repeated glitch
+    if (now - lastAlert < 15000) {
+      // Cooldown to prevent duplicate re-render within 15 seconds on the same tab
       return;
     }
     recentAlertTimes.set(alertKey, now);
@@ -389,7 +380,8 @@
     let iconBoxClass = 'safe';
     let iconHtml = SVG_ICONS.check;
     let badgeTitle = '✓ NO KNOWN THREAT';
-    let riskTagHtml = `<span class="ct-risk-tag safe">Low Risk: ${risk !== null && risk !== undefined ? risk : 0}/100</span>`;
+    const displayRisk = (status === 'SAFE' || status === 'INFO') ? 0 : (risk !== null && risk !== undefined ? Math.round(risk) : 0);
+    let riskTagHtml = `<span class="ct-risk-tag safe">Low Risk: ${displayRisk}/100</span>`;
 
     if (status === 'DANGEROUS') {
       statusClass = 'status-dangerous';
@@ -436,7 +428,7 @@
         <div class="ct-header">
           <div class="ct-brand">
             ${SVG_ICONS.shield}
-            <span>CyberThreat AI Real-Time Protection</span>
+            <span>CyberZen Real-Time Protection</span>
           </div>
           <button class="ct-close-btn" id="ct-close-btn" title="Dismiss">${SVG_ICONS.close}</button>
         </div>
@@ -486,7 +478,7 @@
     if (status === 'SAFE' || status === 'UNKNOWN') {
       autoDismissTimer = setTimeout(() => {
         collapseToMiniBadge(status, domain);
-      }, status === 'SAFE' ? 4500 : 6000);
+      }, 5000);
     }
   }
 
@@ -508,7 +500,7 @@
     else if (statusKey === 'unknown') label = 'UNKNOWN';
 
     mini.innerHTML = `
-      <div class="ct-minimized-badge ${statusKey}" title="CyberThreat AI — ${label}. Click to expand.">
+      <div class="ct-minimized-badge ${statusKey}" title="CyberZen — ${label}. Click to expand.">
         ${SVG_ICONS.shield}
         <span class="ct-min-text">${label}</span>
       </div>

@@ -5,7 +5,7 @@
  */
 
 const LOCAL_API_BASE = "http://127.0.0.1:8000/api";
-const CLOUD_API_BASE = "https://cyberzen-security-api.onrender.com/api";
+const CLOUD_API_BASE = "http://127.0.0.1:8000/api";
 
 const statusBadge    = document.getElementById("status-badge");
 const statusDot      = document.getElementById("status-dot");

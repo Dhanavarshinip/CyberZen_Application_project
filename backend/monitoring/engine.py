@@ -871,10 +871,11 @@ class RealSystemMonitor:
         processed = self._emit_event(event)
         
         ret_event = processed or event
+        final_risk = 0.0 if status in ("SAFE", "INFO") else ret_event.get("risk_score", eval_res.get("risk_score", 0.0))
         return {
             "status": status,
             "domain": domain,
-            "risk_score": ret_event.get("risk_score", eval_res.get("risk_score")),
+            "risk_score": final_risk,
             "reasons": reasons,
             "evaluation": eval_res,
             "event": ret_event

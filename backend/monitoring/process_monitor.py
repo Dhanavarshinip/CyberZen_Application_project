@@ -40,6 +40,9 @@ class ProcessMonitor:
         "python.exe": "Python",
         "python3.exe": "Python 3",
         "electron.exe": "Electron App",
+        "cyberzen operations center.exe": "CyberZen Operations Center",
+        "cyberzen.exe": "CyberZen",
+        "cyberthreat ai operations center.exe": "CyberZen Operations Center",
         "git.exe": "Git",
         "taskmgr.exe": "Task Manager",
         "winword.exe": "Microsoft Word",
@@ -255,7 +258,7 @@ class ProcessMonitor:
             risk_score = max(risk_score, 90.0)
 
         # Check execution from temp/unusual folders
-        if not is_adware and any(sp in exe for sp in cls.SUSPICIOUS_PATHS) and not any(k in name_lower or k in exe for k in ["installer", "setup", "update", "updater", "unpacker", "unzip"]):
+        if not is_adware and any(sp in exe for sp in cls.SUSPICIOUS_PATHS) and not any(k in name_lower or k in exe for k in ["installer", "setup", "update", "updater", "unpacker", "unzip", "cyberzen", "cyberthreat"]):
             reasons.append(f"Executable launched from temporary directory ({exe}).")
             risk_score = max(risk_score, risk_score + 40.0 if risk_score > 0 else 55.0)
 

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "CyberThreat AI - Real-Time Browser Protection",
-  "version": "1.2.0",
-  "description": "Real-time AI threat intelligence & domain reputation monitor for CyberThreat AI System.",
+  "name": "CyberZen AI - Real-Time Browser Security Companion",
+  "version": "1.3.0",
+  "description": "Real-time AI threat intelligence & domain reputation monitor for CyberZen Security Platform.",
   "permissions": [
     "tabs",
     "webNavigation",
@@ -22,8 +22,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start"
     }
   ],

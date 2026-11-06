@@ -36,6 +36,11 @@ _SEEN_SELF_PIDS: Set[int] = set()
 
 # Known legitimate CyberThreat AI process names
 SELF_PROCESS_NAMES = {
+    "cyberzen operations center.exe",
+    "cyberzen.exe",
+    "cyberzen_operations_center.exe",
+    "cyberzen-operations-center-setup-1.0.0 (1).exe",
+    "cyberzen operations center",
     "cyberthreat ai operations center.exe",
     "cyberthreat ai.exe",
     "cyberthreat_ai.exe",
@@ -93,11 +98,15 @@ def get_authorized_roots() -> list[str]:
         roots.append(os.path.realpath(str(release_dir)).lower())
         
     # 3. Standard Windows installation directories
-    for env_var in ["ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"]:
+    for env_var in ["ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA", "TEMP", "TMP"]:
         val = os.getenv(env_var)
         if val:
             roots.append(os.path.realpath(os.path.join(val, "CyberThreat AI")).lower())
             roots.append(os.path.realpath(os.path.join(val, "Programs", "CyberThreat AI")).lower())
+            roots.append(os.path.realpath(os.path.join(val, "CyberZen Operations Center")).lower())
+            roots.append(os.path.realpath(os.path.join(val, "Programs", "CyberZen Operations Center")).lower())
+            roots.append(os.path.realpath(os.path.join(val, "CyberZen")).lower())
+            roots.append(os.path.realpath(val).lower())
             
     # Deduplicate while preserving order
     clean_roots = []
@@ -170,14 +179,14 @@ def verify_self_process(proc_info: Dict[str, Any]) -> Tuple[bool, str, Dict[str,
     cmdline = proc_info.get("cmdline") or ""
     cmdline_str = " ".join(cmdline).lower() if isinstance(cmdline, list) else str(cmdline).lower()
     
-    if name_lower not in SELF_PROCESS_NAMES and not any(k in name_lower for k in ["cyberthreat", "cyberthreat_ai"]):
+    if name_lower not in SELF_PROCESS_NAMES and not any(k in name_lower for k in ["cyberthreat", "cyberthreat_ai", "cyberzen"]):
         return False, "Process name does not match any CyberThreat AI component.", {}
         
     authorized_roots = get_authorized_roots()
     project_root_str = os.path.realpath(str(PROJECT_ROOT)).lower()
     
-    # ── CASE 1: CyberThreat AI Packaged Binary ──────────────────────────────────────────
-    if "cyberthreat" in name_lower:
+    # ── CASE 1: CyberZen / CyberThreat AI Packaged Binary ──────────────────────────────
+    if any(k in name_lower for k in ["cyberthreat", "cyberzen"]):
         # Check executable path: MUST reside inside authorized project or installation root
         if not raw_exe:
             return False, "Cannot verify executable: binary path is empty.", {}
@@ -191,7 +200,7 @@ def verify_self_process(proc_info: Dict[str, Any]) -> Tuple[bool, str, Dict[str,
         if not sha256:
             return False, f"Binary validation error: cannot read or verify '{raw_exe}'.", {}
             
-        return True, "CyberThreat AI Operations Center Desktop Application", {
+        return True, "CyberZen Operations Center Desktop Application", {
             "component": "DESKTOP_CLIENT",
             "exe": raw_exe,
             "sha256": sha256,
@@ -267,7 +276,7 @@ def evaluate_self_process(proc_info: Dict[str, Any]) -> Optional[Dict[str, Any]]
         return None
         
     pid = proc_info.get("pid")
-    raw_name = proc_info.get("name") or "CyberThreat AI"
+    raw_name = proc_info.get("name") or "CyberZen Operations Center"
     cmdline = proc_info.get("cmdline") or ""
     cmdline_str = " ".join(cmdline) if isinstance(cmdline, list) else str(cmdline)
     
@@ -300,7 +309,7 @@ def evaluate_self_process(proc_info: Dict[str, Any]) -> Optional[Dict[str, Any]]
         }
         
     # ── Verified Legitimate & Safe CyberThreat AI Component ─────────────────────────
-    display_title = "CyberThreat AI Operations Center"
+    display_title = "CyberZen Operations Center"
     reasons = [
         f"Verified legitimate application: {badge_or_reason}.",
         f"Installation path verified: {details.get('verified_path') or details.get('exe')}.",

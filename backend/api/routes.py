@@ -1885,26 +1885,41 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
             }
 
         # 6. Evaluate genuine incidents & threats
+        # Only evaluate recent incidents from the active monitoring window (past 24h)
+        incident_cutoff = (now - timedelta(hours=24)).isoformat()
         active_incidents = db.get_incidents(device_id=target_dev)
         high_critical_incidents = [
             i for i in active_incidents 
-            if i.get("severity") in ("CRITICAL", "HIGH") and i.get("status") in ("OPEN", "INVESTIGATING")
+            if i.get("severity") in ("CRITICAL", "HIGH") 
+            and i.get("status") in ("OPEN", "INVESTIGATING")
+            and (i.get("created_at") or "") >= incident_cutoff
         ]
+
+        def _is_self_or_safe_event(ev):
+            feat = ev.get("features") if isinstance(ev.get("features"), dict) else {}
+            if feat.get("is_self_verified") or feat.get("is_helper"):
+                return True
+            proc = (feat.get("process_name") or "").lower()
+            desc = (feat.get("description") or "").lower()
+            if any(k in proc or k in desc for k in ["cyberzen", "cyberthreat"]):
+                return True
+            if feat.get("status") in ("SAFE", "INFO") and not feat.get("is_eicar"):
+                return True
+            return False
+
+        external_threat_candidates = [ev for ev in recent_real_events if not _is_self_or_safe_event(ev)]
 
         has_confirmed_threat = bool(high_critical_incidents) or any(
             (ev.get("features", {}).get("status") == "DANGEROUS" and float(ev.get("risk_score", 0)) >= 50.0) or
             ev.get("features", {}).get("is_eicar") or
             float(ev.get("risk_score", 0)) >= 70.0
-            for ev in recent_real_events
-            if isinstance(ev.get("features"), dict)
+            for ev in external_threat_candidates
         )
 
         has_suspicious_activity = any(
             (ev.get("features", {}).get("status") == "SUSPICIOUS" and float(ev.get("risk_score", 0)) >= 35.0) or
-            float(ev.get("risk_score", 0)) >= 40.0 or
-            float(ev.get("anomaly_score", 0)) >= 60.0
-            for ev in recent_real_events
-            if isinstance(ev.get("features"), dict)
+            float(ev.get("risk_score", 0)) >= 45.0
+            for ev in external_threat_candidates
         )
 
         if has_confirmed_threat:

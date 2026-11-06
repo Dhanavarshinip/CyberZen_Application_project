@@ -121,11 +121,12 @@ def _real_event_pipeline(ev):
         # Never label an unknown event as safe without sufficient evidence
         ev["verdict"] = "UNKNOWN"
         f["status"] = "UNKNOWN"
-    elif collector_status == "INFO":
-        ev["verdict"] = "INFO"
-        f["status"] = "INFO"
+    elif collector_status in ("SAFE", "INFO"):
+        ev["verdict"] = collector_status
+        f["status"] = collector_status
         risk_res["risk_score"] = 0.0
         risk_res["risk_level"] = "MINIMAL"
+        ml_res["anomaly_score"] = 0.0
 
     # Evidence generation: ensure every event has human-readable reasons explaining verdict
     reasons = f.get("reasons") or []
