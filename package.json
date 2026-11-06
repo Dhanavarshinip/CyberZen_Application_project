@@ -38,9 +38,7 @@
         "nsis",
         "portable"
       ],
-      "publisherName": "CyberThreat AI Research Lab",
-      "requestedExecutionLevel": "asInvoker",
-      "signAndEditExecutable": false
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,

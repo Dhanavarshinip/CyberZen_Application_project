@@ -22,6 +22,8 @@ class Config:
     _custom_data_dir = os.getenv("CYBERTHREAT_DATA_DIR")
     if _custom_data_dir:
         DATA_DIR = Path(_custom_data_dir)
+    elif os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        DATA_DIR = Path("/tmp") / "cyberthreat_data"
     elif os.getenv("ENVIRONMENT") == "production" and os.getenv("LOCALAPPDATA"):
         DATA_DIR = Path(os.getenv("LOCALAPPDATA")) / "CyberThreatAI" / "data"
     else:

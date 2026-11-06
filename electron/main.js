@@ -51,7 +51,10 @@ try {
 
 // Enable single instance focus if lock is acquired
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
-if (gotSingleInstanceLock) {
+if (!gotSingleInstanceLock) {
+  console.log('[*] Another instance is already running. Exiting secondary instance.');
+  app.quit();
+} else {
   app.on('second-instance', () => {
     console.log('[*] Second instance requested. Focusing and reloading main window.');
     if (mainWindow) {
