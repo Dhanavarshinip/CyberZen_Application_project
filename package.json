@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "powershell -NoProfile -ExecutionPolicy Bypass -File create_desktop_shortcut.ps1",
     "shortcut": "powershell -NoProfile -ExecutionPolicy Bypass -File create_desktop_shortcut.ps1",
     "electron:dev": "cross-env NODE_ENV=development electron .",
     "electron:pack": "vite build && electron-builder --dir",
@@ -21,7 +20,7 @@
     "appId": "com.cyberthreat.ai",
     "productName": "CyberZen Operations Center",
     "copyright": "Copyright © 2026 CyberThreat AI",
-    "asar": false,
+    "asar": true,
     "forceCodeSigning": false,
     "files": [
       "dist/**/*",

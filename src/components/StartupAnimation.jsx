@@ -6,7 +6,7 @@ export default function StartupAnimation({ onComplete }) {
   const [fading, setFading] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
 
-  const apiBase = apiClient?.getApiBase ? apiClient.getApiBase() : 'http://127.0.0.1:8000/api';
+  const apiBase = apiClient?.getApiBase ? apiClient.getApiBase() : 'https://cyberzen.13.211.114.156.sslip.io/api';
   const cleanBase = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
   const [imgSrc, setImgSrc] = useState('/cyberzen-3d-shield.jpg');
 
@@ -21,11 +21,11 @@ export default function StartupAnimation({ onComplete }) {
     // 2.3s display, then 0.5s fade out
     const fadeTimer = setTimeout(() => {
       setFading(true);
-    }, 2300);
+    }, 1200);
 
     const completeTimer = setTimeout(() => {
       if (onComplete) onComplete();
-    }, 2800);
+    }, 1500);
 
     return () => {
       clearTimeout(fadeTimer);

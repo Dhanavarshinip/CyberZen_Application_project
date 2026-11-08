@@ -78,9 +78,12 @@ export function AuthProvider({ children }) {
       }
       throw new Error('Invalid response from server');
     } catch (err) {
-      setAuthError(err.message || 'Login failed. Please check credentials.');
+      const msg = err.message === 'Failed to fetch'
+        ? 'Could not connect to CyberZen Security Cloud. Please check your internet connection and try again.'
+        : (err.message || 'Login failed. Please check credentials.');
+      setAuthError(msg);
       setIsLoading(false);
-      throw err;
+      throw new Error(msg);
     }
   };
 
@@ -108,9 +111,12 @@ export function AuthProvider({ children }) {
       }
       throw new Error('Invalid response from server');
     } catch (err) {
-      setAuthError(err.message || 'Signup failed. Please try again.');
+      const msg = err.message === 'Failed to fetch'
+        ? 'Could not connect to CyberZen Security Cloud. Please check your internet connection and try again.'
+        : (err.message || 'Signup failed. Please try again.');
+      setAuthError(msg);
       setIsLoading(false);
-      throw err;
+      throw new Error(msg);
     }
   };
 

@@ -85,6 +85,10 @@ const MIME_TYPES = {
 
 function getProjectRoot() {
   if (app.isPackaged) {
+    const directRoot = path.join(__dirname, '..');
+    if (fs.existsSync(directRoot)) {
+      return directRoot;
+    }
     const packagedAppDir = path.join(process.resourcesPath, 'app');
     if (fs.existsSync(packagedAppDir)) {
       return packagedAppDir;
@@ -99,13 +103,17 @@ function getProjectRoot() {
 
 function getDistDir() {
   if (app.isPackaged) {
+    const directDist = path.join(__dirname, '../dist');
+    if (fs.existsSync(directDist)) {
+      return directDist;
+    }
     const packagedDist = path.join(process.resourcesPath, 'app', 'dist');
     if (fs.existsSync(packagedDist)) {
       return packagedDist;
     }
-    const directDist = path.join(__dirname, '../dist');
-    if (fs.existsSync(directDist)) {
-      return directDist;
+    const unpackedDist = path.join(process.resourcesPath, 'app.asar.unpacked', 'dist');
+    if (fs.existsSync(unpackedDist)) {
+      return unpackedDist;
     }
   }
   return path.join(__dirname, '../dist');
@@ -217,6 +225,12 @@ function createWindow(port) {
     mainWindow.show();
     mainWindow.focus();
   });
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isVisible()) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  }, 600);
 
   // Intercept window close to keep 24/7 background monitoring active
   mainWindow.on('close', (event) => {
@@ -374,14 +388,17 @@ ipcMain.on('terminate-backend', () => {
 function ensureBackendRunning(callback) {
   const req = http.get('http://127.0.0.1:8000/api/health', (res) => {
     if (res.statusCode === 200) {
-      console.log('[*] Backend is already running actively on http://127.0.0.1:8000 (24/7 Monitor)');
-      if (callback) callback();
-    } else {
-      startBackend(callback);
+      console.log('[*] Local backend engine active on http://127.0.0.1:8000');
     }
+    if (callback) callback();
   });
   req.on('error', () => {
-    startBackend(callback);
+    console.log('[*] Using CyberZen Cloud Security Service for 24/7 endpoint defense.');
+    if (callback) callback();
+  });
+  req.setTimeout(800, () => {
+    req.destroy();
+    if (callback) callback();
   });
 }
 

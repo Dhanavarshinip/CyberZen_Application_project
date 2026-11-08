@@ -15,21 +15,20 @@ import DownloadView from './components/public/DownloadView';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { apiClient } from './services/apiClient';
 
-const PUBLIC_CLOUD_BACKEND = 'https://cyberzen-security-api.onrender.com/api';
+const PUBLIC_CLOUD_BACKEND = 'https://cyberzen.13.211.114.156.sslip.io/api';
 
 const getDynamicApiBase = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
   if (typeof window !== 'undefined') {
-    if (window.location.hostname.includes('trycloudflare.com')) {
-      return PUBLIC_CLOUD_BACKEND;
-    }
-    if (window.location.hostname.includes('loca.lt')) {
-      return 'https://nice-colts-mix.loca.lt/api';
-    }
     const stored = localStorage.getItem('cyberthreat_api_base');
-    if (stored) return stored;
+    if (stored && !stored.includes('127.0.0.1:8000') && !stored.includes('localhost:8000')) {
+      return stored;
+    }
+    if (window.location.hostname === '13.211.114.156' || window.location.hostname.endsWith('sslip.io')) {
+      return ${window.location.origin}/api;
+    }
   }
-  return 'http://127.0.0.1:8000/api';
+  return PUBLIC_CLOUD_BACKEND;
 };
 
 const API_BASE = {
