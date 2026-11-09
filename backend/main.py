@@ -299,7 +299,8 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 
 # Mount production React frontend build if present
-DIST_DIR = Path(__file__).resolve().parent.parent / "dist"
+BASE_DIR = Path(__file__).resolve().parent.parent
+DIST_DIR = BASE_DIR / "dist"
 if DIST_DIR.exists() and (DIST_DIR / "index.html").exists():
     assets_dir = DIST_DIR / "assets"
     if assets_dir.exists():
@@ -352,7 +353,10 @@ if DIST_DIR.exists() and (DIST_DIR / "index.html").exists():
                 'Start-Process -FilePath $dest\n'
             )
             return PlainTextResponse(ps_script)
-        if full_path in ("install", "download"):
+        if full_path in ("install", "download", "download.html", "install.html"):
+            dl_file = BASE_DIR / "download.html"
+            if dl_file.is_file():
+                return FileResponse(str(dl_file))
             return FileResponse(str(DIST_DIR / "index.html"))
         if full_path.startswith("api") or full_path.startswith("docs") or full_path == "openapi.json":
             from fastapi import HTTPException
