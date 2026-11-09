@@ -25,7 +25,7 @@ const getDynamicApiBase = () => {
       return stored;
     }
     if (window.location.hostname === '13.211.114.156' || window.location.hostname.endsWith('sslip.io')) {
-      return ${window.location.origin}/api;
+      return `${window.location.origin}/api`;
     }
   }
   return PUBLIC_CLOUD_BACKEND;
@@ -663,20 +663,16 @@ function AuthConsumer() {
     }
   }, [isDesktop]);
 
-  // Dedicated public installation route detection
-  const isInstallationPage = typeof window !== 'undefined' && (
-    window.location.pathname.includes('install') ||
-    window.location.pathname.includes('download') ||
-    window.location.search.includes('page=download') ||
-    window.location.search.includes('tab=download') ||
-    window.location.search.includes('install') ||
-    window.location.hostname.includes('github.io') ||
-    window.location.hostname.includes('aws') ||
-    window.location.hostname.includes('amplifyapp') ||
-    window.location.hostname.includes('vercel.app')
-  );
+  // Read URL parameters cleanly
+  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const tabParam = params ? params.get('tab') : null;
+  const pageParam = params ? params.get('page') : null;
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
 
-  if (isInstallationPage) {
+  // Dedicated public installation route detection only when explicitly requested
+  const isExplicitDownload = pathname === '/download' || pathname.startsWith('/install') || tabParam === 'download' || pageParam === 'download';
+
+  if (isExplicitDownload) {
     return (
       <PublicWebsiteLayout
         initialPage="download"
@@ -687,13 +683,12 @@ function AuthConsumer() {
     );
   }
 
+  // If user is authenticated, render the full MainApp (Dashboard, Activity, Incidents, etc.)
   if (isAuthenticated) {
     return <MainApp />;
   }
 
-  // When running inside the Desktop application (Electron / installed app):
-  // NEVER redirect to the Download page!
-  // Guide the user directly to Create Account / Sign In -> Email Verification -> Consent -> Real-Time Protection.
+  // Inside Desktop Electron Shell: Guide directly to Create Account / Sign In
   if (isDesktop && !showWebsiteFallback) {
     return (
       <AuthLayout
@@ -703,9 +698,19 @@ function AuthConsumer() {
     );
   }
 
+  // In Web Browser: Render Public Website with initial page determined by user query or default to 'home'
+  let initialWebPage = 'home';
+  if (tabParam === 'login' || pageParam === 'login') {
+    initialWebPage = 'login';
+  } else if (tabParam === 'register' || tabParam === 'signup' || pageParam === 'register' || pageParam === 'signup') {
+    initialWebPage = 'register';
+  } else if (tabParam === 'features' || pageParam === 'features') {
+    initialWebPage = 'features';
+  }
+
   return (
     <PublicWebsiteLayout
-      initialPage="home"
+      initialPage={initialWebPage}
       onNavigateToApp={() => setShowWebsiteFallback(false)}
     />
   );

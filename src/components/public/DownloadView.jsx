@@ -10,7 +10,7 @@ import { apiClient } from '../../services/apiClient';
 export default function DownloadView({ onDownloaded }) {
   const [downloadInfo, setDownloadInfo] = useState({
     version: '1.0.0',
-    filename: 'CyberZen-Operations-Center-Setup-1.0.0.exe',
+    filename: 'CyberZen-Windows-App-v1.0.0.zip',
     platform: 'Windows',
     supported_os: 'Windows 10, Windows 11 (64-bit)',
     file_size_bytes: 88604672,
@@ -169,17 +169,14 @@ export default function DownloadView({ onDownloaded }) {
       triggerConfetti();
 
       try {
-        let fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Setup-1.0.0.exe';
-        let targetFilename = 'CyberZen-Operations-Center-Setup-1.0.0.exe';
+        let fullUrl = 'https://cyberzen.13.211.114.156.sslip.io/CyberZen-Windows-App-v1.0.0.zip';
+        let targetFilename = 'CyberZen-Windows-App-v1.0.0.zip';
 
-        if (activePlatformTab === 'windows-zip') {
-          fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Windows-Setup-v1.0.0.zip';
-          targetFilename = 'CyberZen-Windows-Setup-v1.0.0.zip';
-        } else if (activePlatformTab === 'windows-portable') {
-          fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Portable-1.0.0.exe';
-          targetFilename = 'CyberZen-Operations-Center-Portable-1.0.0.exe';
+        if (activePlatformTab === 'windows-zip' || activePlatformTab === 'windows-exe' || activePlatformTab === 'windows-portable') {
+          fullUrl = 'https://cyberzen.13.211.114.156.sslip.io/CyberZen-Windows-App-v1.0.0.zip';
+          targetFilename = 'CyberZen-Windows-App-v1.0.0.zip';
         } else if (activePlatformTab === 'extension') {
-          fullUrl = 'https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/cyberzen-chrome-extension.zip';
+          fullUrl = 'https://cyberzen.13.211.114.156.sslip.io/cyberzen-chrome-extension.zip';
           targetFilename = 'cyberzen-chrome-extension.zip';
         }
 
