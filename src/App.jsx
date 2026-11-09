@@ -218,12 +218,25 @@ function MainApp() {
         try {
           const devRes = await apiClient.getDevices(user.id);
           const userDevices = Array.isArray(devRes?.devices) ? devRes.devices : [];
+          // Auto-enroll and pair current workstation if not already bound
+          const myLocalDeviceId = monitorDeviceIdRef.current;
+          const alreadyEnrolled = myLocalDeviceId && userDevices.some(d => d.device_id === myLocalDeviceId);
+          if (myLocalDeviceId && !alreadyEnrolled) {
+            try {
+              await apiClient.registerDevice(myLocalDeviceId, user.id, 'My Workstation', navigator.userAgent || 'Windows Device');
+              if (user.email) {
+                await apiClient.pairExtension(user.email, myLocalDeviceId, user.id);
+              }
+              const refreshedDevRes = await apiClient.getDevices(user.id);
+              userDevices = Array.isArray(refreshedDevRes?.devices) ? refreshedDevRes.devices : userDevices;
+            } catch (_) {}
+          }
           setDevicesList(userDevices);
 
           // Prioritize user's own enrolled devices
           const userOwnsTarget = currentTargetDeviceId && userDevices.some(d => d.device_id === currentTargetDeviceId);
-          if (!userOwnsTarget && userDevices.length > 0) {
-            currentTargetDeviceId = userDevices[0].device_id;
+          if (!userOwnsTarget) {
+            currentTargetDeviceId = myLocalDeviceId || (userDevices.length > 0 ? userDevices[0].device_id : null);
             setSelectedDeviceId(currentTargetDeviceId);
             selectedDeviceIdRef.current = currentTargetDeviceId;
           }

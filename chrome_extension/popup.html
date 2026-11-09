@@ -220,7 +220,15 @@
     </div>
     <div class="action-btn-row">
       <button class="mini-btn" id="btn-pair">Sync with App</button>
-      <button class="mini-btn mini-btn-secondary" id="btn-unpair">Unpair</button>
+      <button class="mini-btn mini-btn-secondary" id="btn-unpair">Unpair / Switch</button>
+    </div>
+    <div id="manual-pair-section" style="margin-top: 10px; display: none;">
+      <div style="font-size: 10px; color: #94a3b8; margin-bottom: 4px;">Pair with CyberZen Account:</div>
+      <div style="display: flex; gap: 6px;">
+        <input type="email" id="input-pair-email" placeholder="user@gmail.com" style="flex:1; background:#0b1120; border:1px solid #334155; border-radius:4px; padding:5px 8px; font-size:11px; color:#f8fafc; outline:none;" />
+        <button id="btn-submit-pair" style="background:#0284c7; color:#fff; border:none; border-radius:4px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer;">Pair</button>
+      </div>
+      <div id="pair-message" style="font-size: 10px; color: #34d399; margin-top: 4px; display: none;"></div>
     </div>
   </div>
 

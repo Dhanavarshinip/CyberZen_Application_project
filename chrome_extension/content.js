@@ -848,5 +848,33 @@
   // Initialize Gmail protection
   initGmailProtection();
 
+  // Auto-sync pairing if user is logged into CyberZen web console in this browser
+  function checkWebConsoleSession() {
+    try {
+      const host = window.location.hostname;
+      if (host.includes('13.211.114.156') || host.includes('sslip.io') || host === 'localhost' || host === '127.0.0.1') {
+        const rawUser = localStorage.getItem('cyberthreat_user');
+        const token = localStorage.getItem('cyberthreat_auth_token');
+        const clientDeviceId = localStorage.getItem('cyberthreat_client_device_id') || localStorage.getItem('cyberthreat_device_id');
+        if (rawUser) {
+          const userObj = JSON.parse(rawUser);
+          if (userObj && userObj.email) {
+            chrome.runtime.sendMessage({
+              action: 'SYNC_FROM_WEB_CONSOLE',
+              payload: {
+                email: userObj.email,
+                user_id: userObj.id,
+                token: token || '',
+                device_id: clientDeviceId || null
+              }
+            }, () => {});
+          }
+        }
+      }
+    } catch (_) {}
+  }
+  checkWebConsoleSession();
+  setInterval(checkWebConsoleSession, 15000);
+
 })();
 

@@ -340,17 +340,52 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Return pairing details to content script or popup
   if (request.action === "GET_PAIRING") {
     (async () => {
+      const deviceId = await getOrCreateDeviceId();
       try {
         const apiBase = await getApiBase();
-        const res = await fetch(`${apiBase}/extension/active-pairing`, { signal: AbortSignal.timeout(3000) });
+        const res = await fetch(`${apiBase}/extension/active-pairing?device_id=${encodeURIComponent(deviceId)}`, { signal: AbortSignal.timeout(3000) });
         if (res.ok) {
           const data = await res.json();
-          sendResponse({ success: true, pairing: data });
-          return;
+          if (data && data.is_paired) {
+            sendResponse({ success: true, pairing: data });
+            return;
+          }
         }
       } catch (_) {}
-      const stored = await chrome.storage.local.get(["user_email", "user_id", "device_id", "allowed_emails"]);
-      sendResponse({ success: !!stored.user_email, pairing: stored });
+      const stored = await chrome.storage.local.get(["user_email", "user_id", "allowed_emails"]);
+      sendResponse({ success: !!stored.user_email, pairing: { ...stored, device_id: deviceId } });
+    })();
+    return true;
+  }
+
+  // Web console sync handler
+  if (request.action === "SYNC_FROM_WEB_CONSOLE") {
+    (async () => {
+      try {
+        const { email, user_id, token, device_id } = request.payload || {};
+        const devId = device_id || (await getOrCreateDeviceId());
+        if (email) {
+          await chrome.storage.local.set({
+            user_email: email,
+            user_id: user_id || "current_user",
+            device_id: devId,
+            auth_token: token || "",
+            allowed_emails: [email]
+          });
+          const apiBase = await getApiBase();
+          await fetch(`${apiBase}/extension/pair`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, device_id: devId, user_id })
+          }).catch(() => {});
+          sendHeartbeat();
+          sendResponse({ success: true, device_id: devId });
+          return;
+        }
+        sendResponse({ success: false, error: "No email provided" });
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
     })();
     return true;
   }
@@ -421,20 +456,36 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   tabLastEvaluatedUrl.delete(tabId);
 });
 
+// Helper to get or persist a stable, unique device identifier
+async function getOrCreateDeviceId() {
+  try {
+    const stored = await chrome.storage.local.get(["device_id"]);
+    if (stored.device_id && stored.device_id !== "DEV-LOCAL" && stored.device_id !== "DEV-HOST" && stored.device_id !== "DEV_HW_D51F7263411C" && stored.device_id !== "UNPAIRED") {
+      return stored.device_id;
+    }
+    const newId = `DEV_${Math.random().toString(36).substring(2, 8).toUpperCase()}${Date.now().toString(36).substring(4).toUpperCase()}`;
+    await chrome.storage.local.set({ device_id: newId });
+    return newId;
+  } catch (_) {
+    return `DEV_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+  }
+}
+
 // Auto-sync pairing credentials on startup and periodically
 async function ensurePairedCredentials() {
+  const deviceId = await getOrCreateDeviceId();
   const apiBase = await getApiBase();
 
-  // 1. Try querying active pairing endpoint from resolved backend (Local or Cloud)
+  // 1. Try querying active pairing endpoint from resolved backend with device_id
   try {
-    const activeRes = await fetch(`${apiBase}/extension/active-pairing`, { signal: AbortSignal.timeout(3000) });
+    const activeRes = await fetch(`${apiBase}/extension/active-pairing?device_id=${encodeURIComponent(deviceId)}`, { signal: AbortSignal.timeout(3000) });
     if (activeRes.ok) {
       const activeData = await activeRes.json();
       if (activeData && activeData.email && activeData.email !== "unpaired@cyberthreat.local" && activeData.is_paired) {
         await chrome.storage.local.set({
           user_email: activeData.email,
           user_id: activeData.user_id || "current_user",
-          device_id: activeData.device_id || "DEV-LOCAL",
+          device_id: deviceId,
           allowed_emails: activeData.allowed_emails || [activeData.email]
         });
         sendHeartbeat();
@@ -449,11 +500,11 @@ async function ensurePairedCredentials() {
     const credsRes = await fetch(credsUrl);
     if (credsRes.ok) {
       const creds = await credsRes.json();
-      if (creds && creds.email && creds.email !== "unpaired@cyberthreat.local") {
+      if (creds && creds.email && creds.email !== "unpaired@cyberthreat.local" && creds.email.trim() !== "") {
         await chrome.storage.local.set({
           user_email: creds.email,
           user_id: creds.user_id || "current_user",
-          device_id: creds.device_id || "DEV-HOST",
+          device_id: creds.device_id || deviceId,
           allowed_emails: [creds.email]
         });
         sendHeartbeat();
@@ -467,19 +518,16 @@ async function ensurePairedCredentials() {
 
 async function sendHeartbeat() {
   try {
+    const deviceId = await getOrCreateDeviceId();
     const apiBase = await getApiBase();
-    const storage = await chrome.storage.local.get(["user_email", "user_id", "device_id"]);
-    if (!storage.user_email || storage.user_email === "unpaired@cyberthreat.local") {
-      await ensurePairedCredentials();
-    }
-    const updated = await chrome.storage.local.get(["user_email", "user_id", "device_id"]);
+    const storage = await chrome.storage.local.get(["user_email", "user_id"]);
     await fetch(`${apiBase}/extension/heartbeat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        device_id: updated.device_id || "DEV-LOCAL",
-        user_id: updated.user_id || "current_user",
-        email: updated.user_email || "",
+        device_id: deviceId,
+        user_id: storage.user_id || "current_user",
+        email: storage.user_email || "",
         version: "1.2.0"
       })
     });

@@ -1352,6 +1352,16 @@ class Database:
         finally:
             conn.close()
 
+    def get_user_by_email(self, email: str) -> dict | None:
+        if not email:
+            return None
+        conn = self._get_conn()
+        try:
+            row = conn.execute("SELECT id, name, email, created_at FROM users WHERE lower(email) = ?", (email.strip().lower(),)).fetchone()
+            return dict(row) if row else None
+        finally:
+            conn.close()
+
     # ── User Allowed Monitored Emails (Online Activities Scope) ──
 
     def get_allowed_emails(self, user_id: str = None) -> list[str]:
@@ -1659,7 +1669,10 @@ class Database:
             if existing:
                 # Disallow silent ownership hijacking
                 if existing["user_id"] != user_id and not existing["is_revoked"]:
-                    raise ValueError("Device already enrolled under another account. Secure unenrollment by the owning account is required before transferring.")
+                    # Allow transfer to authenticated user
+                    conn.execute("UPDATE devices SET user_id = ?, device_name = ?, last_seen = ? WHERE device_id = ?", (user_id, dev_name, now_str, device_id))
+                    conn.commit()
+                    return {"device_id": device_id, "user_id": user_id, "device_name": dev_name, "status": "ONLINE"}
                 conn.execute(
                     """UPDATE devices SET user_id = ?, device_name = ?, os_info = ?,
                        status = CASE WHEN is_revoked = 1 THEN 'REVOKED' ELSE 'ONLINE' END,
