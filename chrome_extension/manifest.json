@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CyberZen AI - Real-Time Browser Security Companion",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Real-time AI threat intelligence & domain reputation monitor for CyberZen Security Platform.",
   "permissions": [
     "tabs",
@@ -14,6 +14,7 @@
     "<all_urls>",
     "http://127.0.0.1:8000/*",
     "http://localhost:8000/*",
+    "https://cyberzen.13.211.114.156.sslip.io/*",
     "https://cyberzen-security-api.onrender.com/*",
     "https://*.onrender.com/*"
   ],
@@ -34,6 +35,16 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "CyberThreat AI Status"
+    "default_title": "CyberZen AI - Real-Time Browser Security",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
   }
 }

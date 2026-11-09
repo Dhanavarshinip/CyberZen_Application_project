@@ -1204,7 +1204,18 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         import os, subprocess
         from pathlib import Path
 
-        ext_path = Path("chrome_extension").resolve()
+        candidate_ext_dirs = [
+            Path(__file__).resolve().parent.parent.parent / "chrome_extension",
+            Path("D:/cyberthreat-extension"),
+            Path.cwd() / "chrome_extension",
+            Path("chrome_extension").resolve(),
+            Path(os.environ.get("LOCALAPPDATA", "")) / "CyberThreatAI" / "chrome_extension"
+        ]
+        ext_path = candidate_ext_dirs[0]
+        for cand in candidate_ext_dirs:
+            if cand.is_dir() and (cand / "manifest.json").exists():
+                ext_path = cand
+                break
         url = payload.get("url") or "https://google.com"
 
         chrome_candidates = [

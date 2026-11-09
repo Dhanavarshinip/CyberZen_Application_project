@@ -5,7 +5,7 @@
  */
 
 const LOCAL_API_BASE = "http://127.0.0.1:8000/api";
-const CLOUD_API_BASE = "http://127.0.0.1:8000/api";
+const CLOUD_API_BASE = "https://cyberzen.13.211.114.156.sslip.io/api";
 
 const statusBadge    = document.getElementById("status-badge");
 const statusDot      = document.getElementById("status-dot");
@@ -59,7 +59,7 @@ async function resolveApiBase() {
     backendStatus.textContent = "☁️ Cloud Protection (Active)";
     backendStatus.style.color = "#38bdf8";
   }
-  if (openDashBtn) openDashBtn.href = "https://cyberzen-security-api.onrender.com";
+  if (openDashBtn) openDashBtn.href = "https://cyberzen.13.211.114.156.sslip.io";
   return CLOUD_API_BASE;
 }
 

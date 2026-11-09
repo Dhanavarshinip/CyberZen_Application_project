@@ -7,7 +7,7 @@
  */
 
 const LOCAL_API_BASE = "http://127.0.0.1:8000/api";
-const CLOUD_API_BASE = "https://cyberzen-security-api.onrender.com/api";
+const CLOUD_API_BASE = "https://cyberzen.13.211.114.156.sslip.io/api";
 const FETCH_TIMEOUT_MS = 6000;
 
 // State management
@@ -63,7 +63,7 @@ async function getApiBase() {
   chrome.storage.local.set({
     active_backend: "CLOUD",
     active_api_url: CLOUD_API_BASE,
-    backend_name: "CyberZen Cloud API (Render Production)"
+    backend_name: "CyberZen Cloud API (AWS Production)"
   }).catch(() => {});
   return CLOUD_API_BASE;
 }

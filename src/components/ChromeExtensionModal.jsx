@@ -13,6 +13,7 @@ import {
   X, 
   Terminal, 
   HardDrive,
+  Download,
   Laptop
 } from 'lucide-react';
 import { apiClient } from '../services/apiClient';
@@ -335,6 +336,31 @@ export default function ChromeExtensionModal({ isOpen, onClose, user, deviceId }
               <Globe size={16} />
               <span>{isLaunching ? 'Launching Chrome...' : 'Launch Chrome with Extension'}</span>
             </button>
+
+            <a
+              href="./cyberzen-chrome-extension.zip"
+              download="cyberzen-chrome-extension.zip"
+              style={{
+                flex: 1,
+                minWidth: '200px',
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                background: '#064e3b',
+                color: '#6ee7b7',
+                border: '1px solid #059669',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                textDecoration: 'none'
+              }}
+            >
+              <Download size={16} />
+              <span>Download Extension (.zip)</span>
+            </a>
 
             <button
               onClick={handlePairNow}

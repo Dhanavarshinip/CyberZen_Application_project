@@ -140,6 +140,8 @@ export default function SettingsView() {
   const textSecondary = isDark ? '#cbd5e1' : '#64748b';
   const dividerColor = isDark ? '#1e1e1e' : '#f1f5f9';
   const cardHighlight = isDark ? 'rgba(0, 240, 255, 0.05)' : '#f8fafc';
+  const subtleBg = isDark ? '#141414' : '#f8fafc';
+  const subtleBorder = isDark ? '#262626' : '#e2e8f0';
 
   return (
     <div style={{

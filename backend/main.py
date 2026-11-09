@@ -329,7 +329,10 @@ if DIST_DIR.exists() and (DIST_DIR / "index.html").exists():
                 url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/CyberZen-Operations-Center-Portable-1.0.0.exe",
                 status_code=307
             )
-        if full_path == "download/extension":
+        if full_path in ("download/extension", "cyberzen-chrome-extension.zip"):
+            local_zip = BASE_DIR / "cyberzen-chrome-extension.zip"
+            if local_zip.is_file():
+                return FileResponse(str(local_zip), filename="cyberzen-chrome-extension.zip", media_type="application/zip")
             from fastapi.responses import RedirectResponse
             return RedirectResponse(
                 url="https://github.com/Dhanavarshinip/CyberZen_Application_project/releases/download/v1.0.0/cyberzen-chrome-extension.zip",
