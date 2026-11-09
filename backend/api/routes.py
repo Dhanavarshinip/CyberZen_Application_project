@@ -108,17 +108,10 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         except Exception:
             pass
 
-        # 3. If extension directories exist on disk, also update pairing_credentials.json
-        candidate_dirs = [
-            Path(__file__).resolve().parent.parent.parent / "chrome_extension",
-            Path("chrome_extension").resolve(),
-            Path.cwd() / "chrome_extension",
-            Path("D:/cyberthreat-extension")
-        ]
+        # 3. Only update local user runtime extension if present in LOCALAPPDATA, NEVER overwrite source repository template folders
         local_app_data = os.environ.get("LOCALAPPDATA", "")
         if local_app_data:
-            candidate_dirs.append(Path(local_app_data) / "CyberThreatAI" / "chrome_extension")
-        for c_dir in candidate_dirs:
+            c_dir = Path(local_app_data) / "CyberThreatAI" / "chrome_extension"
             if c_dir.exists():
                 try:
                     creds_file = c_dir / "pairing_credentials.json"
@@ -1243,14 +1236,22 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         device_id = payload.get("device_id")
         user_id = payload.get("user_id")
         
-        # If user_id is generic or missing, look up owner from device_id in database
-        if (not user_id or user_id in ("current_user", "unpaired@cyberthreat.local", "")) and device_id:
+        # Check if the device is enrolled to a specific registered user
+        enrolled_user = None
+        if device_id:
             dev_rec = db.get_device(device_id)
-            if dev_rec and dev_rec.get("user_id"):
-                user_id = dev_rec["user_id"]
+            if dev_rec and dev_rec.get("user_id") and dev_rec["user_id"] not in ("current_user", "unpaired@cyberthreat.local", ""):
+                enrolled_user = dev_rec["user_id"]
         
-        if not user_id or user_id == "current_user":
-            user_id = real_monitor.user_id if real_monitor else "current_user"
+        # If payload specifies a valid registered user_id, use it
+        if user_id and user_id not in ("current_user", "unpaired@cyberthreat.local", ""):
+            effective_user = user_id
+        elif enrolled_user:
+            effective_user = enrolled_user
+        else:
+            effective_user = None
+
+        user_id = effective_user or (real_monitor.user_id if (real_monitor and not device_id) else "unpaired_user")
         if not device_id or device_id in ("DEV-LOCAL", "DEV-HOST", ""):
             device_id = real_monitor.device_id if real_monitor else f"DEV_CLIENT_{uuid.uuid4().hex[:6].upper()}"
         if not url:
@@ -1270,8 +1271,8 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         browser_event_type = payload.get("browser_event_type", "WEBSITE_OPENED")
         if (browser_event_type == "GMAIL_INSPECTION" or "mail.google.com" in url.lower()) and not is_test:
             active_mailbox = payload.get("active_mailbox") or payload.get("mailbox_email") or payload.get("account_email")
-            if active_mailbox and hasattr(db, "get_allowed_emails"):
-                allowed_emails = [e.lower() for e in db.get_allowed_emails(user_id)]
+            if active_mailbox and effective_user and hasattr(db, "get_allowed_emails"):
+                allowed_emails = [e.lower() for e in db.get_allowed_emails(effective_user)]
                 if allowed_emails and active_mailbox.strip().lower() not in allowed_emails:
                     return {
                         "status": "SKIPPED",

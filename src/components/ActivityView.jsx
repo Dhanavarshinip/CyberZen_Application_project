@@ -159,7 +159,7 @@ export default function ActivityView({
       else if (domainFilter === 'OFFLINE') actDomain = 'OFFLINE';
       else if (domainFilter === 'PENDING') syncSt = 'PENDING';
 
-      const res = await apiClient.getEvents({
+      let res = await apiClient.getEvents({
         limit: 5000,
         deviceId: deviceId || undefined,
         userId: user?.id || undefined,
@@ -171,6 +171,28 @@ export default function ActivityView({
         activityDomain: actDomain,
         syncStatus: syncSt
       });
+
+      // If no events found for this specific device filter, but user is logged in,
+      // fallback to querying all events belonging to the user so historical records
+      // across all their enrolled/hardware devices (yesterday, custom dates) are seamlessly visible!
+      if ((!res || !res.events || res.events.length === 0) && user?.id && deviceId) {
+        try {
+          const fallbackRes = await apiClient.getEvents({
+            limit: 5000,
+            userId: user.id,
+            date: dateParam,
+            startDate: startDateParam,
+            endDate: endDateParam,
+            clientTzOffset: tzOffset,
+            excludeTest: true,
+            activityDomain: actDomain,
+            syncStatus: syncSt
+          });
+          if (fallbackRes && Array.isArray(fallbackRes.events) && fallbackRes.events.length > 0) {
+            res = fallbackRes;
+          }
+        } catch (_) {}
+      }
 
       if (res && Array.isArray(res.events)) {
         setDbEvents(res.events);
@@ -187,7 +209,7 @@ export default function ActivityView({
     } finally {
       if (!isSilent) setIsLoadingActivities(false);
     }
-  }, [dateFilter, customDate, rangeStartDate, rangeEndDate, domainFilter, user?.id]);
+  }, [dateFilter, customDate, rangeStartDate, rangeEndDate, domainFilter, user?.id, deviceId]);
 
   // Load date summary (all dates with data) — runs once on mount and refreshes every 30s
   const loadDateSummary = useCallback(async () => {

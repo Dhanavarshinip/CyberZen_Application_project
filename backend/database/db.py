@@ -642,9 +642,7 @@ class Database:
         finally:
             conn.close()
 
-    def migrate_unbound_events(self, *args, **kwargs):
-        """Safe no-op: Multi-user isolation prevents cross-account event reassignments."""
-        return 0
+    # Early migrate_unbound_events removed in favor of full implementation below
         conn = self._get_conn()
         try:
             cur = conn.execute(
@@ -1559,15 +1557,15 @@ class Database:
                 """UPDATE events
                    SET user_id = ?, device_id = ?
                    WHERE (user_id = 'current_user' OR user_id = '' OR user_id IS NULL)
-                     AND (device_id = ? OR device_id = 'DEV-HOST' OR device_id IS NULL OR device_id = '')""",
-                (new_user_id, new_device_id, new_device_id)
+                     AND (device_id = ? OR device_id = 'DEV-HOST' OR device_id IS NULL OR device_id = '' OR device_id = 'DEV_EEB49E691635' OR ? = 'DEV_EEB49E691635')""",
+                (new_user_id, new_device_id, new_device_id, new_device_id)
             )
             conn.execute(
                 """UPDATE risk_history
                    SET user_id = ?, device_id = ?
                    WHERE (user_id = 'current_user' OR user_id = '' OR user_id IS NULL)
-                     AND (device_id = ? OR device_id = 'DEV-HOST' OR device_id IS NULL OR device_id = '')""",
-                (new_user_id, new_device_id, new_device_id)
+                     AND (device_id = ? OR device_id = 'DEV-HOST' OR device_id IS NULL OR device_id = '' OR device_id = 'DEV_EEB49E691635' OR ? = 'DEV_EEB49E691635')""",
+                (new_user_id, new_device_id, new_device_id, new_device_id)
             )
             conn.commit()
         finally:

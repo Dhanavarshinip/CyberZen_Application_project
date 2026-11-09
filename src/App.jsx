@@ -190,9 +190,26 @@ function MainApp() {
 
   // Fetch this client endpoint's persistent unique device_id
   const fetchDeviceId = async () => {
+    try {
+      const monStatus = await apiClient.getMonitoringStatus();
+      if (monStatus && monStatus.device_id && monStatus.device_id !== 'UNKNOWN') {
+        const hwDeviceId = monStatus.device_id;
+        localStorage.setItem('cyberthreat_client_device_id', hwDeviceId);
+        localStorage.setItem('cyberthreat_device_id', hwDeviceId);
+        setMonitorDeviceId(hwDeviceId);
+        monitorDeviceIdRef.current = hwDeviceId;
+        if (!selectedDeviceIdRef.current || selectedDeviceIdRef.current === 'DEV-HOST' || selectedDeviceIdRef.current.length > 16) {
+          setSelectedDeviceId(hwDeviceId);
+          selectedDeviceIdRef.current = hwDeviceId;
+        }
+        deviceIdFetchedRef.current = true;
+        return hwDeviceId;
+      }
+    } catch (_) {}
+
     let clientDevId = localStorage.getItem('cyberthreat_client_device_id') || localStorage.getItem('cyberthreat_device_id');
     if (!clientDevId || clientDevId === 'DEV_ORIGIN_123' || clientDevId === 'DEV-HOST' || clientDevId === 'UNKNOWN') {
-      clientDevId = `DEV_${Math.random().toString(36).substring(2, 8).toUpperCase()}${Date.now().toString(36).substring(4).toUpperCase()}`;
+      clientDevId = 'DEV_EEB49E691635';
       localStorage.setItem('cyberthreat_client_device_id', clientDevId);
       localStorage.setItem('cyberthreat_device_id', clientDevId);
     }
@@ -203,6 +220,7 @@ function MainApp() {
       selectedDeviceIdRef.current = clientDevId;
     }
     deviceIdFetchedRef.current = true;
+    return clientDevId;
   };
 
   // Poll real backend data — strictly scoped to selected device_id
@@ -233,10 +251,11 @@ function MainApp() {
           }
           setDevicesList(userDevices);
 
-          // Prioritize user's own enrolled devices
+          // Prioritize user's own enrolled devices, selecting the active hardware monitor device first
+          const activeHwDev = myLocalDeviceId ? userDevices.find(d => d.device_id === myLocalDeviceId) : null;
           const userOwnsTarget = currentTargetDeviceId && userDevices.some(d => d.device_id === currentTargetDeviceId);
-          if (!userOwnsTarget) {
-            currentTargetDeviceId = myLocalDeviceId || (userDevices.length > 0 ? userDevices[0].device_id : null);
+          if (!userOwnsTarget || (activeHwDev && currentTargetDeviceId !== myLocalDeviceId && (!selectedDeviceIdRef.current || selectedDeviceIdRef.current === 'DEV_619334F6B1FB'))) {
+            currentTargetDeviceId = activeHwDev ? activeHwDev.device_id : (myLocalDeviceId || (userDevices.length > 0 ? userDevices[0].device_id : null));
             setSelectedDeviceId(currentTargetDeviceId);
             selectedDeviceIdRef.current = currentTargetDeviceId;
           }

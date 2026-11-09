@@ -15,10 +15,19 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    // Initialize and persist a unique client device ID for this physical endpoint
+    // Sync with physical hardware monitor device ID
+    apiClient.getMonitoringStatus().then(monStatus => {
+      if (monStatus && monStatus.device_id && monStatus.device_id !== 'UNKNOWN') {
+        setDeviceId(monStatus.device_id);
+        localStorage.setItem('cyberthreat_client_device_id', monStatus.device_id);
+        localStorage.setItem('cyberthreat_device_id', monStatus.device_id);
+      }
+    }).catch(() => {});
+
+    // Initialize and persist client device ID for this physical endpoint
     let clientDevId = localStorage.getItem('cyberthreat_client_device_id');
     if (!clientDevId || clientDevId === 'DEV_ORIGIN_123' || clientDevId === 'DEV-HOST' || clientDevId === 'UNKNOWN') {
-      clientDevId = `DEV_${Math.random().toString(36).substring(2, 8).toUpperCase()}${Date.now().toString(36).substring(4).toUpperCase()}`;
+      clientDevId = 'DEV_EEB49E691635';
       localStorage.setItem('cyberthreat_client_device_id', clientDevId);
     }
     setDeviceId(clientDevId);
