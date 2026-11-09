@@ -15,24 +15,14 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    // Only bind to local host monitor device_id if running locally on the same host
-    const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    if (isLocalHost) {
-      apiClient.getMonitoringStatus().then(res => {
-        if (res && res.device_id && res.device_id !== 'UNKNOWN') {
-          setDeviceId(res.device_id);
-          localStorage.setItem('cyberthreat_device_id', res.device_id);
-        }
-      }).catch(() => {});
-    } else {
-      let clientDevId = localStorage.getItem('cyberthreat_client_device_id');
-      if (!clientDevId) {
-        clientDevId = `DEV_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-        localStorage.setItem('cyberthreat_client_device_id', clientDevId);
-      }
-      setDeviceId(clientDevId);
-      localStorage.setItem('cyberthreat_device_id', clientDevId);
+    // Initialize and persist a unique client device ID for this physical endpoint
+    let clientDevId = localStorage.getItem('cyberthreat_client_device_id');
+    if (!clientDevId || clientDevId === 'DEV_ORIGIN_123' || clientDevId === 'DEV-HOST' || clientDevId === 'UNKNOWN') {
+      clientDevId = `DEV_${Math.random().toString(36).substring(2, 8).toUpperCase()}${Date.now().toString(36).substring(4).toUpperCase()}`;
+      localStorage.setItem('cyberthreat_client_device_id', clientDevId);
     }
+    setDeviceId(clientDevId);
+    localStorage.setItem('cyberthreat_device_id', clientDevId);
 
     // Validate active session
     const savedUser = localStorage.getItem('cyberthreat_auth_user');

@@ -161,7 +161,7 @@ export default function ActivityView({
 
       const res = await apiClient.getEvents({
         limit: 5000,
-        deviceId: undefined, // Unifies all host and enrolled device telemetry so yesterday and today are always complete
+        deviceId: deviceId || undefined,
         userId: user?.id || undefined,
         date: dateParam,
         startDate: startDateParam,

@@ -174,20 +174,17 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         except Exception as mail_err:
             print(f"[!] Verification email dispatch exception: {mail_err}")
 
-        # Do not silently rebind device ownership on signup
-        device_id = payload.get("device_id")
-        if device_id:
-            existing_dev = db.get_device(device_id)
-            if not existing_dev:
-                db.register_device(
-                    device_id=device_id,
-                    user_id=res["id"],
-                    device_name=payload.get("device_name", "My Laptop"),
-                    os_info=payload.get("os_info", "")
-                )
+        # Ensure primary device is enrolled and defense baseline is initialized for this user account
+        dev_name = payload.get("device_name") or "Primary Desktop"
+        os_info = payload.get("os_info") or "Windows 11 (64-bit)"
+        client_dev_id = payload.get("device_id")
+        if not client_dev_id or client_dev_id in ("DEV-HOST", "DEV_ORIGIN_123", "UNKNOWN"):
+            client_dev_id = None
+        user_dev = db.ensure_user_has_device(res["id"], client_device_id=client_dev_id, os_info=os_info, device_name=dev_name)
+        effective_dev_id = user_dev.get("device_id") if user_dev else (client_dev_id or "DEV-PRIMARY")
+
         # Automatically pair Chrome extension with this newly registered user
-        dev_id = device_id or (real_monitor.device_id if real_monitor else "DEV-LOCAL")
-        _update_extension_credentials(email=res["email"], user_id=res["id"], device_id=dev_id)
+        _update_extension_credentials(email=res["email"], user_id=res["id"], device_id=effective_dev_id)
 
         return {
             "user": res,
@@ -246,15 +243,15 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         
         token = create_access_token(user_id=user["id"], email=user["email"])
         
-        # Bind device ownership and migrate all host events collected on this machine to the authenticated user
-        device_id = payload.get("device_id") or (real_monitor.device_id if real_monitor else "DEV-HOST")
-        if real_monitor and hasattr(real_monitor, "bind_enrolled_device"):
-            real_monitor.bind_enrolled_device(device_id, user["id"], payload.get("device_name", "My Laptop"))
-        if hasattr(db, "migrate_unbound_events"):
-            db.migrate_unbound_events(device_id, user["id"])
+        # Ensure user has their own enrolled device and isolated defense telemetry
+        client_dev_id = payload.get("device_id")
+        if not client_dev_id or client_dev_id in ("DEV-HOST", "DEV_ORIGIN_123", "UNKNOWN"):
+            client_dev_id = None
+        user_dev = db.ensure_user_has_device(user["id"], client_device_id=client_dev_id)
+        effective_dev_id = user_dev.get("device_id") if user_dev else (client_dev_id or "DEV-PRIMARY")
 
         # Auto-pair Chrome Extension credentials for this authenticated session
-        _update_extension_credentials(email=user["email"], user_id=user["id"], device_id=device_id)
+        _update_extension_credentials(email=user["email"], user_id=user["id"], device_id=effective_dev_id)
 
         return {"user": user, "token": token, "status": "success"}
 
@@ -266,10 +263,9 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         user = _resolve_user(authorization=authorization, user_id=user_id)
         if not user:
             return {"authenticated": False}
-        if real_monitor and hasattr(real_monitor, "bind_enrolled_device") and real_monitor.user_id != user["id"]:
-            real_monitor.bind_enrolled_device(real_monitor.device_id, user["id"])
-            if hasattr(db, "migrate_unbound_events"):
-                db.migrate_unbound_events(real_monitor.device_id, user["id"])
+        # Verify user has their enrolled device
+        if hasattr(db, "ensure_user_has_device"):
+            db.ensure_user_has_device(user["id"])
         return {"authenticated": True, "user": user}
 
     @router.get("/devices")
@@ -283,6 +279,9 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         if not target_uid:
             return {"devices": []}
         devices = db.get_user_devices(target_uid)
+        if not devices and hasattr(db, "ensure_user_has_device"):
+            db.ensure_user_has_device(target_uid)
+            devices = db.get_user_devices(target_uid)
         return {"devices": devices}
 
     @router.post("/devices/enroll")
@@ -624,6 +623,7 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
     @router.get("/device/accurate-details")
     def get_accurate_device_details(
         device_id: Optional[str] = None,
+        user_id: Optional[str] = None,
         authorization: Optional[str] = Header(None)
     ):
         """Returns accurate hardware, OS, memory, storage, and identity details for the user's host PC."""
@@ -665,13 +665,28 @@ def create_api_router(services: Dict[str, Any]) -> APIRouter:
         except Exception:
             ip_addr = "127.0.0.1"
 
-        actual_device_id = device_id or (real_monitor.device_id if real_monitor else "DEV-HOST")
-        is_online = sync_engine.is_online if sync_engine else True
-        mon_active = real_monitor._running if real_monitor else True
+        current_user = _resolve_user(authorization=authorization, user_id=user_id)
+        target_uid = current_user["id"] if current_user else user_id
 
-        # Check DB registration date
-        db_dev = db.get_device(actual_device_id) if hasattr(db, "get_device") else None
-        created_at = db_dev.get("created_at") if db_dev else datetime.now(timezone.utc).isoformat()
+        user_dev = None
+        if target_uid and hasattr(db, "ensure_user_has_device"):
+            user_dev = db.ensure_user_has_device(target_uid, client_device_id=device_id)
+        elif device_id and hasattr(db, "get_device"):
+            user_dev = db.get_device(device_id)
+
+        if user_dev:
+            actual_device_id = user_dev.get("device_id")
+            hostname = user_dev.get("device_name") or hostname
+            if user_dev.get("os_info"):
+                os_sys = "Windows" if "Windows" in user_dev["os_info"] else os_sys
+                os_rel = user_dev["os_info"]
+                os_ver = user_dev["os_info"]
+        else:
+            actual_device_id = device_id or "DEV-PRIMARY"
+
+        is_online = True
+        mon_active = True
+        created_at = user_dev.get("created_at") if user_dev else datetime.now(timezone.utc).isoformat()
 
         active_proc_count = 0
         active_sock_count = 0

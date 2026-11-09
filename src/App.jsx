@@ -188,30 +188,21 @@ function MainApp() {
     }
   }, []);
 
-  // Fetch this device's own device_id from the backend monitor
+  // Fetch this client endpoint's persistent unique device_id
   const fetchDeviceId = async () => {
-    if (deviceIdFetchedRef.current && monitorDeviceIdRef.current) return;
-    try {
-      const isLocalHost = typeof window !== 'undefined' && (
-        window.location.hostname === 'localhost' || 
-        window.location.hostname === '127.0.0.1' ||
-        isDesktopEnvironment()
-      );
-      const res = await fetch(`${API_BASE}/monitoring/status`, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) {
-        const ms = await res.json();
-        if (ms.device_id && ms.device_id !== 'UNKNOWN') {
-          setMonitorDeviceId(ms.device_id);
-          monitorDeviceIdRef.current = ms.device_id;
-          deviceIdFetchedRef.current = true;
-          // Auto-select host physical PC on local machine/desktop if no device selected
-          if (!selectedDeviceIdRef.current && isLocalHost) {
-            setSelectedDeviceId(ms.device_id);
-            selectedDeviceIdRef.current = ms.device_id;
-          }
-        }
-      }
-    } catch { /* ignore */ }
+    let clientDevId = localStorage.getItem('cyberthreat_client_device_id') || localStorage.getItem('cyberthreat_device_id');
+    if (!clientDevId || clientDevId === 'DEV_ORIGIN_123' || clientDevId === 'DEV-HOST' || clientDevId === 'UNKNOWN') {
+      clientDevId = `DEV_${Math.random().toString(36).substring(2, 8).toUpperCase()}${Date.now().toString(36).substring(4).toUpperCase()}`;
+      localStorage.setItem('cyberthreat_client_device_id', clientDevId);
+      localStorage.setItem('cyberthreat_device_id', clientDevId);
+    }
+    setMonitorDeviceId(clientDevId);
+    monitorDeviceIdRef.current = clientDevId;
+    if (!selectedDeviceIdRef.current) {
+      setSelectedDeviceId(clientDevId);
+      selectedDeviceIdRef.current = clientDevId;
+    }
+    deviceIdFetchedRef.current = true;
   };
 
   // Poll real backend data — strictly scoped to selected device_id
@@ -229,22 +220,10 @@ function MainApp() {
           const userDevices = Array.isArray(devRes?.devices) ? devRes.devices : [];
           setDevicesList(userDevices);
 
-          // Prioritize current physical laptop/host device if owned by this user
-          const userOwnsHost = monitorDeviceIdRef.current && userDevices.some(d => d.device_id === monitorDeviceIdRef.current);
+          // Prioritize user's own enrolled devices
           const userOwnsTarget = currentTargetDeviceId && userDevices.some(d => d.device_id === currentTargetDeviceId);
-
-          if (userOwnsHost && (!currentTargetDeviceId || !userOwnsTarget || currentTargetDeviceId === 'DEV-HOST')) {
-            currentTargetDeviceId = monitorDeviceIdRef.current;
-            setSelectedDeviceId(currentTargetDeviceId);
-            selectedDeviceIdRef.current = currentTargetDeviceId;
-          } else if (!userOwnsTarget) {
-            if (userOwnsHost) {
-              currentTargetDeviceId = monitorDeviceIdRef.current;
-            } else if (userDevices.length > 0) {
-              currentTargetDeviceId = userDevices[0].device_id;
-            } else {
-              currentTargetDeviceId = null;
-            }
+          if (!userOwnsTarget && userDevices.length > 0) {
+            currentTargetDeviceId = userDevices[0].device_id;
             setSelectedDeviceId(currentTargetDeviceId);
             selectedDeviceIdRef.current = currentTargetDeviceId;
           }
