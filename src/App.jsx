@@ -18,14 +18,16 @@ import { apiClient } from './services/apiClient';
 const PUBLIC_CLOUD_BACKEND = 'https://cyberzen.13.211.114.156.sslip.io/api';
 
 const getDynamicApiBase = () => {
+  if (typeof apiClient !== 'undefined' && apiClient.getApiBase) {
+    return apiClient.getApiBase();
+  }
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
   if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('cyberthreat_api_base');
-    if (stored && !stored.includes('127.0.0.1:8000') && !stored.includes('localhost:8000')) {
-      return stored;
+    if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+      return ${window.location.origin}/api;
     }
     if (window.location.hostname === '13.211.114.156' || window.location.hostname.endsWith('sslip.io')) {
-      return `${window.location.origin}/api`;
+      return ${window.location.origin}/api;
     }
   }
   return PUBLIC_CLOUD_BACKEND;

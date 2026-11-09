@@ -6,16 +6,33 @@
  */
 
 export const PUBLIC_CLOUD_BACKEND = 'https://cyberzen.13.211.114.156.sslip.io/api';
+export const LOCAL_BACKEND = 'http://127.0.0.1:8000/api';
 
 const getInitialApiBase = () => {
   if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
   if (typeof window !== 'undefined') {
+    // If running in browser served by local uvicorn
+    if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+      return ${window.location.origin}/api;
+    }
+    // If running on EC2 cloud domain
+    if (window.location.hostname === '13.211.114.156' || window.location.hostname.endsWith('sslip.io')) {
+      return ${window.location.origin}/api;
+    }
+    // Check if running in Electron desktop shell
+    const isDesktop = Boolean(
+      window.cyberthreatDesktop?.isDesktop ||
+      window.location.search?.includes('app_mode=desktop') ||
+      window.navigator?.userAgent?.toLowerCase().includes('electron') ||
+      localStorage.getItem('cyberthreat_is_desktop') === 'true'
+    );
+    if (isDesktop) {
+      return LOCAL_BACKEND;
+    }
     const stored = localStorage.getItem('cyberthreat_api_base');
-    if (stored && (stored.includes('127.0.0.1') || stored.includes('localhost'))) {
-      localStorage.removeItem('cyberthreat_api_base');
-    } else if (stored && stored.startsWith('http')) {
+    if (stored && stored.startsWith('http')) {
       return stored;
     }
   }

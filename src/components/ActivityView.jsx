@@ -162,7 +162,7 @@ export default function ActivityView({
       let res = await apiClient.getEvents({
         limit: 5000,
         deviceId: deviceId || undefined,
-        userId: user?.id || undefined,
+        userId: user?.id || (typeof localStorage !== 'undefined' ? (JSON.parse(localStorage.getItem('cyberthreat_auth_user') || '{}')?.id) : undefined),
         date: dateParam,
         startDate: startDateParam,
         endDate: endDateParam,
@@ -371,23 +371,25 @@ export default function ActivityView({
   const filteredEvents = useMemo(() => {
     const todayStr = getTodayStr();
     const yesterdayStr = getYesterdayStr();
+    const dbEventIdSet = new Set((dbEvents || []).map(dbe => dbe.event_id));
 
     return realEvents.filter(ev => {
       const f = ev.features || {};
       const cat = f.activity_category || '';
       const evType = ev.event_type || '';
       const evDate = getLocalDateStr(ev.timestamp || ev.created_at);
+      const isFromDbQuery = dbEventIdSet.has(ev.event_id);
 
       // 1. Date Filter (Strict local time matching with DB event preservation)
       if (dateFilter === 'TODAY') {
-        if (evDate !== todayStr && !dbEvents.some(dbe => dbe.event_id === ev.event_id)) return false;
+        if (evDate !== todayStr && !isFromDbQuery) return false;
       } else if (dateFilter === 'YESTERDAY') {
-        if (evDate !== yesterdayStr && !dbEvents.some(dbe => dbe.event_id === ev.event_id)) return false;
+        if (evDate !== yesterdayStr && !isFromDbQuery) return false;
       } else if (dateFilter === 'CUSTOM') {
-        if (evDate !== customDate && !dbEvents.some(dbe => dbe.event_id === ev.event_id)) return false;
+        if (evDate !== customDate && !isFromDbQuery) return false;
       } else if (dateFilter === 'RANGE') {
-        if (rangeStartDate && evDate < rangeStartDate) return false;
-        if (rangeEndDate && evDate > rangeEndDate) return false;
+        if (rangeStartDate && evDate < rangeStartDate && !isFromDbQuery) return false;
+        if (rangeEndDate && evDate > rangeEndDate && !isFromDbQuery) return false;
       }
 
       // 2. Domain Filter (Online vs Offline Activities)
